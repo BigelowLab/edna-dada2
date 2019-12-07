@@ -1,0 +1,62 @@
+#current date is 2019/12/5
+
+#This document describes all of the software and reference databases that need to be updated on a semi-regular basis to allow for analysis of metabarcode sequencing data with dada2. Dada2 allows the user to process raw sequence data to generate ASVs - amplicon sequence variants, while using machine learning to find sequences that are arifacts of the PCR process and/or sequencing errors. This error detection capability allows for detection of distinct ASVs by as little as 1 bp difference in sequences - particularly useful for metabarcodes that tend to be < 400 bp in length. It should be noted that dada2 can be used to describe ASVs from much longer sequence reads, e.g., those from PacBio sequencers that can now yield full-length 16S and 18S genes. Finally, this is a 'living document' that may change over time. This initial list was compiled and updated on 2019/12/5 by Pete Countway. If changes are made to the process and/or required software, please annotate the document and add your initials to the changes.
+
+#R
+Current version of R is 3.6.1 (2019-07-05) with the new release (v3.6.2) set to come out next week, 2019-12-12. The current installed version on Charlie is 3.6(?)
+https://www.r-project.org/
+
+#dada2
+Current version of dada2 is v1.14. Current installed version on Charlie is v1.12.1(?). Note: installation on Charlie has been difficult and we (Kevin and Pete) have had to trouble-shoot installations numerous times with help from Kevin's consultant in Portland, plus some online help from the dada2 community. There is a record of this on a Slack channel # comp-dada2 (Pete just added Nick Record and Ben Tupper to the slack channel) and in the dada2 issues forum on Github.
+https://benjjneb.github.io/dada2/index.html
+
+#cutadapt
+A python package that removes primers and adapters from raw DNA sequences - prior to processing with dada2. Current version is 2.7. Current installed version is v2.6 (?). Note: In the new version of dada2 (v1.14), functionality for primer searching and removal has been implemented, but I think we should still install cutadapt given that it works well.
+https://cutadapt.readthedocs.io/en/stable/#
+
+#figaro
+A python package developed by Michael Weinstein (Zymo Research) that performs quality-based weeding of raw metabarcode sequences. Right now we have to do this by eyeballing it from plots of the error profiles (see dada2 tutorial). This package is brand new to me and I (PDC) have never used it, however I met with Michael over Thanksgiving weekend (he was in Biddeford for the holiday) and I'm sure that he'd help us implement it if we need help.
+https://www.biorxiv.org/content/10.1101/610394v1 (pre-print of the figaro manuscript)
+https://github.com/Zymo-Research/figaro (figaro source code)
+
+#Required R packages
+
+Assuming that dada2 is installed a number of R packages are also needed, including the list below. Note: A couple of these are described in Ben Callahan's tutorial, while most are listed in Daniel Vaulot's tutorial. See tutorial information below.
+
+#Note: I am uncertain of all of the current and installed versions of these packages below as of today's date.
+
+ShortRead: current = 1.42, installed = 1.40.0, https://bioconductor.org/packages/release/bioc/html/ShortRead.html
+Biostrings: current = 2.52, installed = 2.50.2, https://bioconductor.org/packages/release/bioc/html/Biostrings.html
+readr: current = 1.31, installed = 1.31, https://www.rdocumentation.org/packages/readr/versions/1.3.1, or install whole tidyverse
+readxl: current = 1.31, installed = 1.31, https://www.rdocumentation.org/packages/readxl/versions/1.3.1, or install whole tidyverse
+dplyr: current = 0.8.1 , installed = 0.8.1, https://www.rdocumentation.org/packages/dplyr/versions/0.7.8, or install whole tidyverse (note the link to dplyr indicates version 0.7.8, but the version on CRAN seems to be 0.8.1 - I don't think the rdocumentation page has been updated)
+tibble: current = 2.1.2, installed = 2.1.1, https://www.rdocumentation.org/packages/tibble/versions/1.4.2, or install whole tidyverse
+ggplot2: not installed: https://github.com/tidyverse/ggplot2, or install whole tidyverse 
+tidyr: current = 0.8.3, installed = 0.8.3, https://www.rdocumentation.org/packages/tidyr/versions/0.8.3, or install whole tidyverse
+stringr: current = 1.4.0, installed = 1.4.0, https://www.rdocumentation.org/packages/stringr/versions/1.4.0
+phyloseq: current = 1.28, installed = 1.28, https://bioconductor.org/packages/release/bioc/html/phyloseq.html
+kableExtra: current = 1.1.0, installed = 1.1.0, https://github.com/haozhu233/kableExtra
+
+
+#Tutorials
+
+dada2 Tutorial from Ben Callahan (dada2 author)
+https://benjjneb.github.io/dada2/tutorial.html
+Link to example data for use in the tutorial above (also found in the above link)
+
+dada2 Tutorial from Daniel Vaulot (Lead scientist of the PR2 database, Protistan biologist from Roscoff, FR). Note: Daniel has been very helpful to me with my initial efforts to implement dada2 using the pr2 database. Daniel's tutorial gets a lot deeper into analysis and presentation of ASV data.
+https://github.com/vaulot/metabarcodes_tutorials
+
+#Reference Databases
+
+The gold standards for 16S and 18S are the Silva databases, found at the link below. The current version is v132, but the new release (v138) is due out any day now.
+That said, there is a more refined version (in terms of accuracy of current taxonomic thinking) of the 18S database at PR2 site, which is maintained by Daniel Vaulot. I've switched over to using PR2 for protistan taxonomic assignments in dada2. The current version of PR2 is v4.12.
+
+Silva:
+https://www.arb-silva.de/
+
+PR2:
+https://github.com/pr2database/pr2database
+
+
+

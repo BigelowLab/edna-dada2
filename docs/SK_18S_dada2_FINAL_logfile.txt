@@ -1,0 +1,572 @@
+Starting a final dada2 run on the SK_18S data following dada2 tutorial (except using cutadapt)
+
+###Started this reanalysis on 6/24/19. Had to stop and start a few times. Final run will start on 7/1/2019
+
+> screen -S SK_18S_070119 ###Name for this screen session
+> qsub -I -q route -l select=1:ncpus=32:mem=64gb -l walltime=168:00:00 -N dada2 ###This didn't work, c1 was busy
+> qsub -I -q scgc-route -l select=1:ncpus=32:mem=64gb -l walltime=168:00:00 -N dada2  ###Had to jump onto c2 as c1 was busy
+> module use /mod/bigelow
+> module load dada2/1.12
+> cd /mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/cutadapt/
+> R
+
+> library(dada2); packageVersion("dada2")
+[1] ‘1.12.1’
+> library(ShortRead); packageVersion("ShortRead")
+[1] ‘1.42.0’
+> library(Biostrings); packageVersion("Biostrings")
+[1] ‘2.52.0’
+
+### Setting up to run cutadapt, this was done prior to 7/1/2019 as the initial step
+
+setwd("/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/")
+getwd()
+[1] "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/"
+path <- "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/"
+list.files(path)
+
+### All of the files get listed.
+### The next section is preparation for cutadapt, skip if you've already done that
+
+> fnFs <- sort(list.files(path, pattern = "_R1_001.fastq", full.names = TRUE))
+> fnRs <- sort(list.files(path, pattern = "_R2_001.fastq", full.names = TRUE))
+> FWD <- "CYGCGGTAATTCCAGCTC"                   ### E572F          
+> REV <- "AYGGTATCTRATCRTCTTYG"                 ### E1009R          
+> allOrients <- function(primer) 
++ {                                                                                                                                 
++ require(Biostrings)                                                                                              
++ dna <- DNAString(primer)                                                                                                           
++ orients <- c(Forward = dna, Complement = complement(dna), Reverse = reverse(dna), RevComp = reverseComplement(dna)) 
++ return(sapply(orients, toString))                                                                                                 
++ }                                                                      
+> FWD.orients <- allOrients(FWD)                                                                                           
+> REV.orients <- allOrients(REV)                                               
+> FWD.orients                                                                                                                      
+Forward              Complement           Reverse                                                                          
+"CYGCGGTAATTCCAGCTC" "GRCGCCATTAAGGTCGAG" "CTCGACCTTAATGGCGYC"          
+RevComp  "GAGCTGGAATTACCGCRG"                                                                                                                                                    
+> REV.orients                                                                                                      
+Forward                Complement             Reverse                                                             
+"AYGGTATCTRATCRTCTTYG" "TRCCATAGAYTAGYAGAARC" "GYTTCTRCTARTCTATGGYA"                                                         RevComp                                                                                                                              
+"CRAAGAYGATYAGATACCRT" 
+                                                                                    
+> fnFs.filtN <- file.path(path, "filtN", basename(fnFs))   ### All of the reads get filtered for any sequences containing N's, sequences passing this filtering step are placed into a folder called FiltN                                 
+> fnRs.filtN <- file.path(path, "filtN", basename(fnRs))   
+> filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = 32, compress = FALSE)   ### if working with flat (uncompressed files) then call... compress = FALSE
+Creating output directory: /mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/fastq//filtN
+
+> primerHits <- function(primer, fn) {
++ nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
++ return(sum(nhits > 0))
++ }
+> rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[1]]),
++ FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs.filtN[[1]]),
++ REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.filtN[[1]]),
++ REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.filtN[[1]])) ### This block returns the primer counts
+  Forward Complement Reverse RevComp
+FWD.ForwardReads    9847          0       0       0
+FWD.ReverseReads       0          0       0     314     ### Indicates 'read through' of short reads, e.g. FWD primer is found in the ReverseReads, in RevComp orientation
+REV.ForwardReads       0          0       0     162     ### Indicates 'read through' of short reads, e.g. REV primer is found in the ForwardReads, in RevComp orientation
+REV.ReverseReads    9675          0       0       0
+
+> cutadapt <- "/mnt/modules/bin/dada2/1.12/bin/cutadapt"
+> system2(cutadapt, args = "--version")
+2.3
+> path.cut <- file.path(path, "cutadapt")
+> if(!dir.exists(path.cut)) dir.create(path.cut)
+> fnFs.cut <- file.path(path.cut, basename(fnFs))
+> fnRs.cut <- file.path(path.cut, basename(fnRs))
+> FWD.RC <- dada2:::rc(FWD)
+> REV.RC <- dada2:::rc(REV)
+> R1.flags <- paste("-g", FWD, "-a", REV.RC)
+> R2.flags <- paste("-G", REV, "-A", FWD.RC)
+
+> for(i in seq_along(fnFs)) {
++ system2(cutadapt, args = c(R1.flags, R2.flags, "-n", 2,
++ "--minimum-length", 25,                       ### 25 is a minimum length for a sequence to be saved, prevents 0-length sequences from being saved, which caused problems downstream
++ "-o", fnFs.cut[i], "-p", fnRs.cut[i],
++ fnFs.filtN[i], fnRs.filtN[i]))
++ }                                             ### Initiates the cutadapt program
+
+###This sequence of commands above worked
+###There were some additional error messages about 'one or more of your adapter (AKA primer) sequences being incomplete', but it seems safe to ignore these msgs.
+###Cutadapted sequences were read from the 'FiltN' folder and placed into a folder called 'cutadapt' here: /mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/cutadapt/
+
+> rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.cut[[1]]),                                              
++ FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs.cut[[1]]),                                                    
++ REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.cut[[1]]),                                                      
++ REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.cut[[1]]))                                                     
+                 Forward Complement Reverse RevComp                                                                                                                     
+FWD.ForwardReads       0          0       0       0                                                                                 
+FWD.ReverseReads       0          0       0       0                                                                           
+REV.ForwardReads       0          0       0       0                                                                                
+REV.ReverseReads       0          0       0       0         ### No primers found in the cutadapted reads. This is the end of the cutadapt process. I'm ready to proceeed!
+
+> setwd("/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/cutadapt/")
+> path <- "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/cutadapt/"
+> list.files(path)
+
+### All of the cutadapted files are listed here.
+
+
+> PR2_tax_levels <- c("Kingdom", "Supergroup", "Division", "Class", "Order", "Family", "Genus", "Species")
+> fnFs <- sort(list.files(path, pattern = "_R1_001.fastq", full.names = TRUE))                                        
+> fnRs <- sort(list.files(path, pattern = "_R2_001.fastq", full.names = TRUE))          
+> sample.names <- sapply(strsplit(basename(fnFs), "_"), `[`, 1)                         
+> head(sample.names)                                                        
+[1] "BR10" "BR2"  "BR3"  "BR4"  "BR5"  "BR6"
+
+> print(sample.names)                        ###print(sample.names) returns all of the names  
+ [1] "BR10" "BR2"  "BR3"  "BR4"  "BR5"  "BR6"  "BR7"  "BR9"  "ER1"  "ER10"                                                     
+[11] "ER11" "ER12" "ER13" "ER14" "ER15" "ER16" "ER2"  "ER3"  "ER4"  "ER5"                                                      
+[21] "ER6"  "ER7"  "ER8"  "ER9"  "JP1"  "JP2"  "JP3"  "JP4"  "JP5"  "JP7"                                                      
+[31] "JP8"  "JP9"  "KB1"  "KB10" "KB2"  "KB3"  "KB4"  "KB5"  "KB6"  "KB9"                                                      
+[41] "NM3"  "NM4"  "NM5"  "NM6"  "NM9"  "PI1"  "PI2"  "PI3"  "PI4"  "PI5"                                                      
+[51] "PI7"  "PI8"  "PI9"  "WR1"  "WR10" "WR2"  "WR3"  "WR4"  "WR5"  "WR6"                                                      
+[61] "WR7"  "WR8"                                                                                                              
+
+> pdf("/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/cutadapt/SK_18S_cutadapted_quality_files.pdf")
+> plotQualityProfile(fnFs[1:2])                                                                                                                                  
+Scale for 'y' is already present. Adding another scale for 'y', which will replace the existing scale.
+> plotQualityProfile(fnRs[1:2])                                                                                           
+Scale for 'y' is already present. Adding another scale for 'y', which will replace the existing scale.        
+> dev.off()            ### This writes the pdf files for the first two samples, they look good, 7/1/19                      
+pdf                                                                  
+  2                    ### I don't know why it says pdf, then 2. Most recently it said 'null device' and '1' 7/8/19 PDC  
+> filtFs <- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq"))               
+> filtRs <- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq"))  
+> names(filtFs) <- sample.names                                                                     
+> names(filtRs) <- sample.names                                               
+> out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(275,225),   
++ maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,                                         
++ compress=FALSE, multithread=32)    ### I changed compress = FALSE (default is TRUE) so that it doesn't gzip the files 7/1/19 
+Creating output directory: /mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL/fastq/cutadapt//filtered 
+> head(out)                                                                                             
+                                 reads.in reads.out                                                                 
+BR10_2017_S340_L001_R1_001.fastq    10530      9313                                                                  
+BR2_2016_S216_L001_R1_001.fastq     66109     57577                                                                        
+BR3_2016_S228_L001_R1_001.fastq     66742     57241                                                                             
+BR4_2016_S240_L001_R1_001.fastq     43303     24172                                                                         
+BR5_2016_S252_L001_R1_001.fastq     58605     49446                                                                          
+BR6_2017_S337_L001_R1_001.fastq     10168      9064
+                                                    
+> write.csv(out, file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/filterAndTrim_outfile.csv")
+
+> errF <- learnErrors(filtFs, multithread=32)                                                                                  
+113874200 total bases in 414088 reads from 11 samples will be used for learning the error rates.                               
+> errR <- learnErrors(filtRs, multithread=32)                                                                                  
+105230925 total bases in 467693 reads from 12 samples will be used for learning the error rates.   ###This number of bases and sequences is greater than two previous runs of these data, not sure why???
+> pdf("/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/learnErrors_files.pdf")    
+> plotErrors(errF, nominalQ=TRUE)
+Warning message:                                                                                                               
+Transformation introduced infinite values in continuous y-axis                                                                 
+> plotErrors(errR, nominalQ=TRUE)                                                                                              
+Warning message:                                                                                                               
+Transformation introduced infinite values in continuous y-axis                                                                 
+> dev.off()                                                                                                                    
+pdf                                                                                                                            
+  2                                                                                                                                                    
+> dadaFs <- dada(filtFs, err=errF, multithread=32)   ### Note: this command is different than what appears in some of older tutorials because the dereplication step is now rolled into this             
+Sample 1 - 9313 reads in 3562 unique sequences.                                                                                
+Sample 2 - 57577 reads in 15408 unique sequences.                                                                              
+Sample 3 - 57241 reads in 14455 unique sequences.                                                                              
+Sample 4 - 24172 reads in 7642 unique sequences.                                                                               
+Sample 5 - 49446 reads in 13138 unique sequences.                                                                              
+Sample 6 - 9064 reads in 2367 unique sequences.                                                                                
+Sample 7 - 10093 reads in 2940 unique sequences.                                                                               
+Sample 8 - 16919 reads in 5334 unique sequences.                                                                               
+Sample 9 - 61107 reads in 19127 unique sequences.                                                                              
+Sample 10 - 52793 reads in 16288 unique sequences.                                                                             
+Sample 11 - 66363 reads in 21517 unique sequences.                                                                             
+Sample 12 - 53605 reads in 18732 unique sequences.                                                                             
+Sample 13 - 62367 reads in 20879 unique sequences.                                                                             
+Sample 14 - 68361 reads in 22514 unique sequences.                                                                             
+Sample 15 - 47324 reads in 14186 unique sequences.                                                                             
+Sample 16 - 54760 reads in 17122 unique sequences.                                                                             
+Sample 17 - 58411 reads in 18185 unique sequences.                                                                             
+Sample 18 - 53216 reads in 17082 unique sequences.
+Sample 19 - 47185 reads in 16275 unique sequences.                                                                             
+Sample 20 - 51222 reads in 16036 unique sequences.                                                                             
+Sample 21 - 39057 reads in 11879 unique sequences.                                                                             
+Sample 22 - 42896 reads in 13059 unique sequences.                                                                             
+Sample 23 - 51846 reads in 15110 unique sequences.                                                                             
+Sample 24 - 51654 reads in 16450 unique sequences.                                                                             
+Sample 25 - 35825 reads in 7067 unique sequences.                                                                              
+Sample 26 - 36699 reads in 7814 unique sequences.                                                                              
+Sample 27 - 26749 reads in 7186 unique sequences.                                                                              
+Sample 28 - 41653 reads in 9153 unique sequences.                                                                              
+Sample 29 - 31932 reads in 9922 unique sequences.                                                                              
+Sample 30 - 18931 reads in 5527 unique sequences.                                                                              
+Sample 31 - 4387 reads in 1309 unique sequences.                                                                               
+Sample 32 - 19966 reads in 6599 unique sequences.                                                                              
+Sample 33 - 34182 reads in 7603 unique sequences.                                                                              
+Sample 34 - 11957 reads in 3881 unique sequences.                                                                              
+Sample 35 - 29392 reads in 9212 unique sequences.                                                                              
+Sample 36 - 21411 reads in 4114 unique sequences.
+Sample 37 - 59937 reads in 20863 unique sequences.                                                                             
+Sample 38 - 48725 reads in 15024 unique sequences.                                                                             
+Sample 39 - 8784 reads in 2337 unique sequences.                                                                               
+Sample 40 - 16691 reads in 4056 unique sequences.                                                                              
+Sample 41 - 27424 reads in 8257 unique sequences.                                                                              
+Sample 42 - 33601 reads in 11285 unique sequences.                                                                             
+Sample 43 - 34514 reads in 10401 unique sequences.                                                                             
+Sample 44 - 12415 reads in 4126 unique sequences.                                                                              
+Sample 45 - 8710 reads in 2293 unique sequences.                                                                               
+Sample 46 - 53720 reads in 15271 unique sequences.                                                                             
+Sample 47 - 49215 reads in 11859 unique sequences.                                                                             
+Sample 48 - 50975 reads in 11329 unique sequences.                                                                             
+Sample 49 - 46152 reads in 13379 unique sequences.                                                                             
+Sample 50 - 37086 reads in 13236 unique sequences.                                                                             
+Sample 51 - 20070 reads in 5601 unique sequences.                                                                              
+Sample 52 - 10941 reads in 2309 unique sequences.                                                                              
+Sample 53 - 9524 reads in 3410 unique sequences.                                                                               
+Sample 54 - 18045 reads in 3332 unique sequences.                                                                              
+Sample 55 - 17374 reads in 6629 unique sequences.                                                                              
+Sample 56 - 46973 reads in 11904 unique sequences.                                                                             
+Sample 57 - 58898 reads in 14538 unique sequences.                                                                             
+Sample 58 - 68757 reads in 18534 unique sequences.                                                                             
+Sample 59 - 49101 reads in 15487 unique sequences.                                                                             
+Sample 60 - 5302 reads in 1637 unique sequences.                                                                               
+Sample 61 - 10473 reads in 2844 unique sequences.                                                                              
+Sample 62 - 18942 reads in 5961 unique sequences.                                                                              
+> dadaRs <- dada(filtRs, err=errR, multithread=32)                                                                             
+Sample 1 - 9313 reads in 3143 unique sequences.                                                                                
+Sample 2 - 57577 reads in 14774 unique sequences.                                                                              
+Sample 3 - 57241 reads in 13048 unique sequences.                                                                              
+Sample 4 - 24172 reads in 7684 unique sequences.                                                                               
+Sample 5 - 49446 reads in 13014 unique sequences.                                                                              
+Sample 6 - 9064 reads in 2203 unique sequences.                                                                                
+Sample 7 - 10093 reads in 3040 unique sequences.                                                                               
+Sample 8 - 16919 reads in 5202 unique sequences.                                                                               
+Sample 9 - 61107 reads in 17589 unique sequences.                                                                              
+Sample 10 - 52793 reads in 15245 unique sequences.                                                                             
+Sample 11 - 66363 reads in 20022 unique sequences.                                                                             
+Sample 12 - 53605 reads in 17316 unique sequences.                                                                             
+Sample 13 - 62367 reads in 19274 unique sequences.                                                                             
+Sample 14 - 68361 reads in 20899 unique sequences.                                                                             
+Sample 15 - 47324 reads in 13709 unique sequences.                                                                             
+Sample 16 - 54760 reads in 15972 unique sequences.                                                                             
+Sample 17 - 58411 reads in 17283 unique sequences.                                                                             
+Sample 18 - 53216 reads in 16957 unique sequences.                                                                             
+Sample 19 - 47185 reads in 15804 unique sequences.                                                                             
+Sample 20 - 51222 reads in 14863 unique sequences.                                                                             
+Sample 21 - 39057 reads in 11345 unique sequences.
+Sample 22 - 42896 reads in 11989 unique sequences.                                                                             
+Sample 23 - 51846 reads in 14268 unique sequences.                                                                             
+Sample 24 - 51654 reads in 14948 unique sequences.                                                                             
+Sample 25 - 35825 reads in 7114 unique sequences.                                                                              
+Sample 26 - 36699 reads in 7249 unique sequences.                                                                              
+Sample 27 - 26749 reads in 7590 unique sequences.                                                                              
+Sample 28 - 41653 reads in 9195 unique sequences.                                                                              
+Sample 29 - 31932 reads in 10020 unique sequences.                                                                             
+Sample 30 - 18931 reads in 5486 unique sequences.                                                                              
+Sample 31 - 4387 reads in 1126 unique sequences.                                                                               
+Sample 32 - 19966 reads in 6414 unique sequences.                                                                              
+Sample 33 - 34182 reads in 7512 unique sequences.                                                                              
+Sample 34 - 11957 reads in 3541 unique sequences.                                                                              
+Sample 35 - 29392 reads in 9214 unique sequences.                                                                              
+Sample 36 - 21411 reads in 3993 unique sequences.                                                                              
+Sample 37 - 59937 reads in 20212 unique sequences.                                                                             
+Sample 38 - 48725 reads in 14132 unique sequences.                                                                             
+Sample 39 - 8784 reads in 2017 unique sequences.                                                                               
+Sample 40 - 16691 reads in 3906 unique sequences.                                                                              
+Sample 41 - 27424 reads in 8416 unique sequences.                                                                              
+Sample 42 - 33601 reads in 11702 unique sequences.                                                                             
+Sample 43 - 34514 reads in 10541 unique sequences.                                                                             
+Sample 44 - 12415 reads in 3928 unique sequences.                                                                              
+Sample 45 - 8710 reads in 2063 unique sequences.                                                                               
+Sample 46 - 53720 reads in 14223 unique sequences.                                                                             
+Sample 47 - 49215 reads in 10874 unique sequences.                                                                             
+Sample 48 - 50975 reads in 12099 unique sequences.                                                                             
+Sample 49 - 46152 reads in 14024 unique sequences.                                                                             
+Sample 50 - 37086 reads in 12694 unique sequences.                                                                             
+Sample 51 - 20070 reads in 5486 unique sequences.                                                                              
+Sample 52 - 10941 reads in 2175 unique sequences.                                                                              
+Sample 53 - 9524 reads in 2824 unique sequences.                                                                               
+Sample 54 - 18045 reads in 3282 unique sequences.                                                                              
+Sample 55 - 17374 reads in 6675 unique sequences.                                                                              
+Sample 56 - 46973 reads in 11898 unique sequences.                                                                             
+Sample 57 - 58898 reads in 13410 unique sequences.                                                                             
+Sample 58 - 68757 reads in 18320 unique sequences.                                                                             
+Sample 59 - 49101 reads in 14488 unique sequences.                                                                             
+Sample 60 - 5302 reads in 1316 unique sequences.                                                                               
+Sample 61 - 10473 reads in 2659 unique sequences.                                                                              
+Sample 62 - 18942 reads in 5668 unique sequences.
+
+> dadaFs[[1]]                                                                                                                  
+dada-class: object describing DADA2 denoising results                                                                          
+418 sequence variants were inferred from 3562 input unique sequences.                                                          
+Key parameters: OMEGA_A = 1e-40, OMEGA_C = 1e-40, BAND_SIZE = 16                                                               
+> dadaRs[[62]]                                                                                                                 
+dada-class: object describing DADA2 denoising results                                                                          
+232 sequence variants were inferred from 5668 input unique sequences.                                                          
+Key parameters: OMEGA_A = 1e-40, OMEGA_C = 1e-40, BAND_SIZE = 16
+
+> mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)           ###makes contigs from the denoised PE reads
+7475 paired-reads (in 320 unique pairings) successfully merged out of 8175 (in 485 pairings) input.                            
+48956 paired-reads (in 1070 unique pairings) successfully merged out of 55525 (in 4195 pairings) input.                        
+47176 paired-reads (in 915 unique pairings) successfully merged out of 55272 (in 3033 pairings) input.                         
+20482 paired-reads (in 472 unique pairings) successfully merged out of 22609 (in 1662 pairings) input.                         
+42470 paired-reads (in 882 unique pairings) successfully merged out of 47051 (in 3181 pairings) input.                         
+8254 paired-reads (in 116 unique pairings) successfully merged out of 8651 (in 252 pairings) input.                            
+8435 paired-reads (in 187 unique pairings) successfully merged out of 9424 (in 490 pairings) input.                            
+14711 paired-reads (in 287 unique pairings) successfully merged out of 15820 (in 848 pairings) input.                          
+51734 paired-reads (in 1185 unique pairings) successfully merged out of 58558 (in 4719 pairings) input.                        
+43653 paired-reads (in 899 unique pairings) successfully merged out of 50488 (in 3830 pairings) input.                         
+51516 paired-reads (in 1238 unique pairings) successfully merged out of 62937 (in 6111 pairings) input.                        
+41600 paired-reads (in 1080 unique pairings) successfully merged out of 50522 (in 4861 pairings) input.                        
+48107 paired-reads (in 1312 unique pairings) successfully merged out of 59204 (in 5731 pairings) input.                        
+52902 paired-reads (in 1422 unique pairings) successfully merged out of 64947 (in 6550 pairings) input.                        
+39062 paired-reads (in 813 unique pairings) successfully merged out of 45332 (in 3273 pairings) input.                         
+45280 paired-reads (in 1057 unique pairings) successfully merged out of 52244 (in 4421 pairings) input.                        
+49051 paired-reads (in 1127 unique pairings) successfully merged out of 55719 (in 4703 pairings) input.                        
+43074 paired-reads (in 1212 unique pairings) successfully merged out of 50231 (in 5163 pairings) input.                        
+37533 paired-reads (in 1108 unique pairings) successfully merged out of 44332 (in 4799 pairings) input.                        
+42926 paired-reads (in 947 unique pairings) successfully merged out of 48763 (in 3851 pairings) input.                         
+33017 paired-reads (in 701 unique pairings) successfully merged out of 37153 (in 2726 pairings) input.                         
+36688 paired-reads (in 643 unique pairings) successfully merged out of 40979 (in 2777 pairings) input.                         
+44006 paired-reads (in 796 unique pairings) successfully merged out of 49351 (in 3484 pairings) input.                         
+43199 paired-reads (in 900 unique pairings) successfully merged out of 49081 (in 3911 pairings) input.                         
+33342 paired-reads (in 452 unique pairings) successfully merged out of 34762 (in 1167 pairings) input.                         
+33625 paired-reads (in 597 unique pairings) successfully merged out of 35766 (in 1717 pairings) input.                                               
+22602 paired-reads (in 471 unique pairings) successfully merged out of 25390 (in 1876 pairings) input.                         
+39192 paired-reads (in 535 unique pairings) successfully merged out of 40684 (in 1334 pairings) input.                         
+26902 paired-reads (in 649 unique pairings) successfully merged out of 30340 (in 2410 pairings) input.                         
+16754 paired-reads (in 291 unique pairings) successfully merged out of 17808 (in 729 pairings) input.                          
+3727 paired-reads (in 106 unique pairings) successfully merged out of 4063 (in 146 pairings) input.                            
+17050 paired-reads (in 370 unique pairings) successfully merged out of 18625 (in 1223 pairings) input.                         
+31193 paired-reads (in 529 unique pairings) successfully merged out of 33077 (in 1397 pairings) input.                         
+10418 paired-reads (in 255 unique pairings) successfully merged out of 11099 (in 502 pairings) input.                          
+24562 paired-reads (in 557 unique pairings) successfully merged out of 27747 (in 2127 pairings) input.                         
+20689 paired-reads (in 305 unique pairings) successfully merged out of 21078 (in 384 pairings) input.                          
+47188 paired-reads (in 1077 unique pairings) successfully merged out of 56527 (in 5689 pairings) input.                        
+39974 paired-reads (in 1092 unique pairings) successfully merged out of 46182 (in 4424 pairings) input.                        
+8045 paired-reads (in 101 unique pairings) successfully merged out of 8311 (in 181 pairings) input.                            
+14714 paired-reads (in 240 unique pairings) successfully merged out of 15866 (in 728 pairings) input.                          
+23080 paired-reads (in 526 unique pairings) successfully merged out of 25703 (in 1968 pairings) input.                         
+26452 paired-reads (in 667 unique pairings) successfully merged out of 31552 (in 3352 pairings) input.                         
+28639 paired-reads (in 639 unique pairings) successfully merged out of 32702 (in 2563 pairings) input.                         
+10367 paired-reads (in 245 unique pairings) successfully merged out of 11450 (in 727 pairings) input.                          
+7904 paired-reads (in 134 unique pairings) successfully merged out of 8286 (in 231 pairings) input.                            
+45898 paired-reads (in 1049 unique pairings) successfully merged out of 51583 (in 3804 pairings) input.                        
+43756 paired-reads (in 967 unique pairings) successfully merged out of 47743 (in 2973 pairings) input.                         
+45830 paired-reads (in 703 unique pairings) successfully merged out of 49161 (in 2548 pairings) input.                         
+38305 paired-reads (in 822 unique pairings) successfully merged out of 43991 (in 3840 pairings) input.                         
+29364 paired-reads (in 720 unique pairings) successfully merged out of 34481 (in 3672 pairings) input.                         
+18071 paired-reads (in 289 unique pairings) successfully merged out of 19025 (in 870 pairings) input.                          
+10220 paired-reads (in 120 unique pairings) successfully merged out of 10510 (in 271 pairings) input.                          
+8087 paired-reads (in 185 unique pairings) successfully merged out of 8806 (in 490 pairings) input.                            
+17669 paired-reads (in 238 unique pairings) successfully merged out of 17934 (in 273 pairings) input.                          
+13590 paired-reads (in 460 unique pairings) successfully merged out of 15368 (in 1332 pairings) input.                         
+40852 paired-reads (in 796 unique pairings) successfully merged out of 45126 (in 2799 pairings) input.                         
+53278 paired-reads (in 941 unique pairings) successfully merged out of 56921 (in 2682 pairings) input.                         
+59900 paired-reads (in 1184 unique pairings) successfully merged out of 65887 (in 4377 pairings) input.                        
+40203 paired-reads (in 1050 unique pairings) successfully merged out of 46428 (in 4274 pairings) input.                        
+4639 paired-reads (in 139 unique pairings) successfully merged out of 4938 (in 196 pairings) input.                            
+9177 paired-reads (in 193 unique pairings) successfully merged out of 9719 (in 442 pairings) input.                            
+16306 paired-reads (in 381 unique pairings) successfully merged out of 17846 (in 1132 pairings) input.                         
+> head(mergers[[1]])
+1   CAATAGCGTATATTAAAGTTGTTGCGGTTAAAAAGCTCGTAGTTGGATTTCTGCTGAGGACGACCGGTCCGCCCTCTGGGTGAGTATCTGGCTTGGCCTTGGCATCTTCTTGGAGAACGTATC
+TGCACTTGACTGTGTGGTGCGGTATCCAGGACTTTTACTTTGAGGAAATTAGAGTGTTTCAAGCAGGCACACGCCTTGAATACATTAGCATGGAATAATAAGATAGGACCTTGGTTCTATTTTGTTG
+GTTTCTAGAGCTGAGGTAATGATTAATAGGGATAGTTGGGGGCATTCGTATTTAACTGTCAGAGGTGAAATTCTTGGATTTGTTAAAGACGGACTACTGCGAAAGCATTTGCCAAGGATGTTTTCAT
+TGATCAAGAACGAAAGTTAGGGGAT                                                                                                      
+2         TAATAGCGTATATTAAAGTTGTTGCAGTTAAAAAGCTCGTAGTCGGATGTCGGGCTCGGGCAGGCTGTCGGCTTCGGTCGGACGGCAGGCTCGGGTCTTTCTGCCTGAGGAACCCGT
+GGCACTTAACTGTGCGGCGTGGGGACGCAGGCCGTTTACTTTGAAAAAATTAGAGTGTTCAAAGCAGGCCTACGCTTGAATACATTAGCATGGAATAATGGAATAGGACTTTGGTGCTATTTTGTTG
+GTTTATGGGACCGAAGTAATGATTAACAGGGACAGTTGGGGCCGTTTATATTTCGTTGTCAGAGGTGAAATTCTTGGATTTACGAAAGATAAACTTCTGCGAAAGCATTCGGCAAGGATGTTTTCAT
+TGATCAAGAACGAAAGTTAGGGGAT                                                                                                      
+3 CAATAGCGTATATTGAAGTTGTTGCGGTTAAAAAGCTCGTCGTTGGATTTCTGTTGAGGTCGAACAGTGCCGCCCTATGGGTGCGCAACTGGCTCGGCTTCGGCATCTTCTTGGAGAGCGCATCT
+GCACTTAACTGTGTGGATCGTACTTCAAGTCAGTTACTTTGAGGAATTGTGAGTGTTTCAAGCAGGCTTACGCCGTTGAATCCGTTAGCATGGAATAATAGAATAGGACCTCGGTTCTATTTTGTTG
+GTTTTGAGAGCTGGGGCAGCGATTGATAGGGACGGATGGGGGCGTCCGAACTTTACTGTCAGAGGTGAAATTCTTAGATCGGTCAAAGGCGAACTACTGCGAACGCATTCGCCAAGAATGTTTTCTT
+TAATCAAGAACGAAAGTTAGGGGAT                                                                                                      
+4   CAATAGCGTATATTTAAGTTGTTGCAGTTAAAAAGCTCGTAGTTGGATTTCGGGTGAGGATGACCGGTCTGCCGTTGCGGTACGCACTGGACGTTTTCATCTTGTTGTCGGGGACGCGCTTCT
+GGGCTTCACTGTTCGGGACGCGGAGTCGGCGCTGTTACTTTGAAAAAATTAGAGTGTTCAAAGCAGGCAATCGCTCTGAATACATTAGCATGGAATAACGCTATAGGACTCTGGTCCTATTGTGTTG
+GTCTTCGGGACCGGAGTAATGATTAAGAGGGACAGTTGGGGGCATTCGTATTTCATTGTCAGAGGTGAAATTCTTGGATTTATGAAAGACGAACTTCTGCGAAAGCATTTGCCAAGGATGTTTTCAT
+TAATCAAGAACGAAAGTTGGGGGCT                                                                                                      
+5   AGTAGCATATATTAAAATTGTTGCAGTTAAAACGTCCGTAGTCTGTACGTCGT
+CCCAAACTCACTGCAGTCTTCCGTTTTCTTCATTGAATGCGGTAGTTTCTGCAGTCACTCCCTTGATCAAATTAGGTTGTTCAAGGTAGACCAAGTCTTCATATTTTCACATGGAATTGGGTGAGGG
+AACTTAAGAGTTTAAGTTTCTCGTCTTAGGATCATCCGGGGTCATTCGTACTCGTCCGCGAGAGGTGAAATTCTTGGACCGGACGAAGACGACCAGCAGCGAAAGCATCTGTCAGGGATGTTTTCTG
+CGACAAAGGACGAAGGTCAGGGTAT                                                                                                      
+6         TAATAGCGTATATTAAAGTTGTTGCAGTTAAAAAGCTCGTAGTCGGATGTCGGGCTCGGGCAGGCTGTCGGCTTCGGTCGGACGGCAGGCTCGGGTCTTTCTGCCTGAGGATCCCGT
+TGCACTTTATTGTGGGGCGTGGGGACGCAGGCCGTTTACTTTGAAAAAATTAGAGTGTTCAAAGCAGGCCTACGCTTGAATACATTAGCATGGAATAATGGAATAGGACTTTGGTGCTATTTTGTTG
+GTTTATGGGACCGAAGTAATGATTAACAGGGACAGTTGGGGCCGTTTATATTTCGTTGTCAGAGGTGAAATTCTTGGATTTACGAAAGATAAACTTCTGCGAAAGCATTCGGCAAGGATGTTTTCAT
+TGATCAAGAACGAAAGTTAGGGGAT                                                                                                      
+  abundance forward reverse nmatch nmismatch nindel prefer accept                                                              
+1       762       1       2     98         0      0      2   TRUE                                                              
+2       463       2       1    104         0      0      2   TRUE                                                              
+3       315       3       3     96         0      0      2   TRUE                                                              
+4       251       4       4     98         0      0      2   TRUE                                                              
+5       222       5       5    168         0      0      2   TRUE                                                              
+6       190       6       1    104         0      0      2   TRUE                                                              
+                                                                                                                                      
+> seqtab <- makeSequenceTable(mergers)                                                                                         
+> dim(seqtab)                                                                                                                  
+[1]    62 16771                                                                                                                
+> table(nchar(getSequences(seqtab)))                                                                                           
+                                                                                                                               
+ 275  276  277  280  281  282  283  284  287  288  289  291  293  294  295  298                                                
+   2    8    6    3    1    3    1    3    1    3    2    1    1    3    2    2                                                
+ 300  301  302  303  304  305  306  308  310  311  314  316  317  318  319  320                                                
+   2    1    1    4    1    1    1    1    1    1    1    2    1    1    3    1                                                
+ 321  322  324  326  327  328  329  330  331  332  333  334  335  336  337  338                                                
+   1    1    2    1    1    3   14    6    3    8    8    1    1    2    1    1                                                
+ 339  342  343  344  345  346  347  348  349  350  351  352  353  354  355  356                                                
+   3    5    1    9    6    6    3    4    5    7   13    4    2    1    5    3                                                
+ 357  358  359  360  361  362  363  364  365  366  367  368  369  370  371  372                                                
+  10    4    4    9    2    9    4    7    3    4    1    5    5    6    3    4                                                
+ 373  374  375  376  377  378  379  380  381  382  383  384  385  386  387  388                                                
+  11    8   10    9   12    4    9   12    4   18   14   29   23    7  205   50                                                
+ 389  390  391  392  393  394  395  396  397  398  399  400  401  402  403  404                                                
+  61   64   75   68  115  297  426  900  497  203  554  629 1018 4382 1041  928                                                
+ 405  406  407  408  409  410  411  412  413  414  415  416  417  418  419  420                                                
+2249  434  450  308  263  498  135   66   46   38   23   26   15   14   37   45                                                
+ 421  422  423  424  425  426  427  428  429  430  431  432  433  434  435  436                                                
+  16   15   17    8    4    4    5    3   11    6    5    2    1    1    2    3                                                
+ 437  438  439  440  441  443  444  445  447  449  451  452  453  454  455  456                                                
+  13    7    1    4    1    2    1    2    1    1    1    3    2    1    1    2                                                
+ 458  460  461  462  464  466  468  470  475  481  483  484  485  487                                                          
+   1    1    1    1    1    1    1    1    4    1    3    1    1    1                                                          
+
+###I screwed up and resized the 'shell in a box' window trying to run the following command. Had to save the workspace to .RData, ARghhhhhhh, had to start over!!! 7/8/2019 ###
+
+> write.table(nchar(getSequences(seqtab)), file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/nhcar.txt")     ###This sort of works to generate the table above, may need to 'cut a band' to restrict the range of sequence lengths but I want to see if getting rid of chimeras deals with this first 
+> write.csv(nchar(getSequences(seqtab)), file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/nhcar.csv")))   ###This is an alternative to the write.table for the same file
+> write.csv(seqtab, file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/seqtab.csv")      ###But, this file has more than 16,000 columns so it can't be opened in Excel, would have to transform it first
+> seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=32, verbose=TRUE)
+Identified 12922 bimeras out of 16771 input sequences.
+> table(nchar(getSequences(seqtab.nochim)))
+275 276 277 280 281 282 283 284 287 288 289 291 293 294 295 298 300 301 302 303                                                
+  2   8   4   2   1   3   1   2   1   3   2   1   1   3   2   2   2   1   1   3                                                
+304 305 306 308 310 316 317 318 319 321 322 324 328 329 330 331 332 333 334 336                                                
+  1   1   1   1   1   1   1   1   3   1   1   2   3  13   6   3   5   6   1   2                                                
+337 338 339 342 343 344 345 346 347 349 350 351 352 353 354 355 356 357 358 359                                                
+  1   1   3   1   1   8   6   5   1   5   6  12   4   1   1   5   3   9   4   4                                                
+360 361 362 363 364 365 366 368 369 370 371 372 373 374 375 376 377 378 379 380                                                
+  9   2   9   3   6   3   4   5   5   4   3   4   9   6  10   8   9   4   8  11                                                
+381 382 383 384 385 386 387 388 389 390 391 392 393 394 395 396 397 398 399 400                                                
+  4  17  14  26  22   7  18  27  27  51  30  23  30  59  73  67  67  62 162 218                                                
+401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 418 419 420                                                
+312 749 152 167 171  73  83 111 119 174  59  43  38  24  23  23  15  12  25  23                                                
+421 422 423 424 425 426 427 428 429 430 431 432 433 434 435 436 437 438 439 440                                                
+ 13  14  11   6   4   4   5   3   9   4   4   2   1   1   2   2  13   7   1   4                                                
+441 443 444 445 447 449 451 452 453 454 455 456 458 460 461 462 464 466 468 470                                                
+  1   2   1   2   1   1   1   3   2   1   1   2   1   1   1   1   1   1   1   1                                                
+475 481 483 484 485 487                                                                                                        
+  4   1   3   1   1   1 
+> dim(seqtab.nochim)                                                                                                           
+[1]   62 3849                     ### Lost a lot of the ASVs to chimeras, 16771 --> 3849 ....but
+> sum(seqtab.nochim)/sum(seqtab)  ### It was only ~14% of the total merged sequences                                
+[1] 0.8627059
+> write.csv(seqtab.nochim, file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/seqtab.nochim.csv")
+> write.csv(nchar(getSequences(seqtab.nochim)), file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/seqtab.nochim_nchar.csv") ###opened this in Windows to graph lengths in Excel
+> seqtab.nochim.trans <- t(seqtab.nochim)   ###Transforms the data table into 'mothur' format
+
+> getN <- function(x) sum(getUniques(x))                                                                                       
+> track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+> colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")                                     
+> rownames(track) <- sample.names
+> head(track)         
+>      input filtered denoisedF denoisedR merged nonchim                                                                         
+BR10 10530     9313      8372      8773   7475    7435                                                                       
+BR2  66109    57577     56293     56706  48956   37887                                                                         
+BR3  66742    57241     55956     56399  47176   41120                                                                         
+BR4  43303    24172     23093     23514  20482   18437                                                                         
+BR5  58605    49446     47839     48467  42470   36943                                                                         
+BR6  10168     9064      8799      8801   8254    8059
+> write.csv(track, file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/track.csv")      ###2,613,961 input sequences were whittled down to 1,624,364 nochim sequences, note: Also got these #s the 2nd time I ran through the entire procedure with newly cutadapted sequences 7/8/2019
+
+> taxa <- assignTaxonomy(seqtab.nochim, "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/filtered/pr2_version_4.11.1_dada2.fasta")
+
+###Launched assignTaxonomy at 8:54 a.m. on 7/1/2019, but I forgot to include all of Daniel's extra flags...
+###Daniel's pr2 tutorial is a bit different at this step and also includes (taxLevels = PR2_tax_levels, minBoot = 0, outputBootstraps = TRUE, verbose = TRUE)
+###assignTaxonomy is complete as of ~17:00 on 7/2/2019, not sure how long it took. I forgot to set multithread, but it still seems to have completed relatively quickly? 
+
+###Launched this again at 18:00:00 on 7/2/2019 with added commands from Daniel's pr2-based tutorial... 
+###Launched Daniel's version of assignTaxonomy again @23:52 on 7/8/2019 for the final, final, final run!!! It finished as of 11:46 am on 7/11/2019, ~60 hours! This is similar to the timing for the first run
+
+taxa <- assignTaxonomy(seqtab.nochim, refFasta = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/cutadapt/filtered/pr2_version_4.11.1_dada2.fasta", taxLevels = PR2_tax_levels, minBoot = 0, outputBootstraps = TRUE, verbose = TRUE, multithread = 32)
+
+> head(taxa.print)   ###I had to copy in these PR2 tax levels, for some reason this 'head' command didn't save them, despite the output to the csv file including them, ???
+
+> taxa.print <- taxa                                                                                                          
+> rownames(taxa.print) <- NULL                                                                                                
+> head(taxa.print)              
+
+###I just ran head(taxa.print) and it said no such object, so I ran head(taxa) and it's printing out all of the sequences 7/11/2019 PDC (see very bottom of this logfile for a solution)                                                                                              
+                                                                                                          
+     tax.Kingdom     	tax.Supergroup	tax.Division     	tax.Class    	            
+[1,] "Eukaryota"	"Alveolata"	"Dinoflagellata"	"Dinophyceae"    
+[2,] "Eukaryota" 	"Alveolata"     "Dinoflagellata"	"Dinophyceae"
+[3,] "Eukaryota" 	"Hacrobia"      "Cryptophyta"    	"Cryptophyceae"  
+[4,] "Eukaryota" 	"Opisthokonta"  "Metazoa"        	"Arthropoda"
+[5,] "Eukaryota" 	"Stramenopiles" "Ochrophyta"     	"Bacillariophyta"     
+[6,] "Eukaryota" 	"Opisthokonta"  "Metazoa"       	"Urochordata"    
+     tax.Order		tax.Family      		tax.Genus 	                               
+[1,] "Gonyaulacales"   	"Ceratiaceae"        		"Tripos"                                                                 
+[2,] "Gymnodiniales"  	"Gymnodiniaceae"      		"Gyrodinium"                                                             
+[3,] "Cryptophyceae_X" 	"Cryptomonadales"     		"Teleaulax"                                                              
+[4,] "Crustacea"         "Maxillopoda"        		"Oithona"                                                                
+[5,] "Bacillariophyta_X" "Polar-centric-Mediophyceae" 	"Minidiscus"                                                             
+[6,] "Urochordata_X"     "Ascidiacea"                 	"Botryllus"                                                              
+     tax.Species                                                                                                                     
+[1,] "Tripos_furca"                                                                                                            
+[2,] "Gyrodinium_spirale"                                                                                                      
+[3,] "Teleaulax_acuta"                                                                                                         
+[4,] "Oithona_similis"                                                                                                         
+[5,] "Minidiscus_trioculatus"                                                                                                  
+[6,] "Botryllus_planus"  
+
+I didn't copy the write csv file command before I ended the R-session, but it should have looked like this:
+       
+write.csv(taxa, file = "/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_
+data_FINAL/cutadapt/taxa_v2.csv")
+
+###I'm stopping here, I don't yet understand how to best import data into Phyloseq and I want to run through this analysis one FINAL, FINAL, effing-FINAL time, before I make graphs because of the mismatch in ASV #s between the previous two runs.
+
+The new working folder is:
+
+"/mnt/storage/labs/countway_nfs/dada2_data/SK_oyster_parasites_18S/All_18S_data_FINAL_v2/"
+
+7/7/2019
+PDC
+           
+###Nick figured out how to fix the head command for taxa.print [see below] for the slightly different taxa output files used by Daniel Vaulot for PR2
+###For this 4th time through the SK data I got the same # of ASVs, N=3849, as the 3rd time and the taxonomic IDs are consistent 
+7/11/2019
+PDC
+                                                                                                                 
+> taxa.print <- taxa.print[1]$tax                                                                                                                                       
+> rownames(taxa.print) <- NULL                                                                                                                                          
+> head(taxa.print) 
+                                                                                                                                                   
+     Kingdom     Supergroup      Division         Class                                                                                                                 
+[1,] "Eukaryota" "Alveolata"     "Dinoflagellata" "Dinophyceae"                                                                                                         
+[2,] "Eukaryota" "Alveolata"     "Dinoflagellata" "Dinophyceae"                                                                                                         
+[3,] "Eukaryota" "Hacrobia"      "Cryptophyta"    "Cryptophyceae"                                                                                                       
+[4,] "Eukaryota" "Opisthokonta"  "Metazoa"        "Arthropoda"                                                                                                          
+[5,] "Eukaryota" "Stramenopiles" "Ochrophyta"     "Bacillariophyta"                                                                                                     
+[6,] "Eukaryota" "Opisthokonta"  "Metazoa"        "Urochordata"                                                                                                         
+     Order               Family                       Genus                                                                                                             
+[1,] "Gonyaulacales"     "Ceratiaceae"                "Tripos"                                                                                                          
+[2,] "Gymnodiniales"     "Gymnodiniaceae"             "Gyrodinium"                                                                                                      
+[3,] "Cryptophyceae_X"   "Cryptomonadales"            "Teleaulax"                                                                                                       
+[4,] "Crustacea"         "Maxillopoda"                "Oithona"                                                                                                         
+[5,] "Bacillariophyta_X" "Polar-centric-Mediophyceae" "Minidiscus"                                                                                                      
+[6,] "Urochordata_X"     "Ascidiacea"                 "Botryllus"                                                                                                       
+     Species                                                                                                                                                            
+[1,] "Tripos_furca"                                                                                                                                                     
+[2,] "Gyrodinium_spirale"                                                                                                                                               
+[3,] "Teleaulax_acuta"                                                                                                                                                  
+[4,] "Oithona_similis"                                                                                                                                                  
+[5,] "Minidiscus_trioculatus"                                                                                                                                           
+[6,] "Botryllus_planus"                                                                                                                                                 
+>                                                                                                                                                                       
+
+
+
+
+                    
+
+                                                                                                                  
+                                                                                                                                                                                                                                                                                                   
+
+                                               

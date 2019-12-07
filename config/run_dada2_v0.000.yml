@@ -1,0 +1,11 @@
+email: btupper@bigelow.org
+input_path: "."
+output_path: "./output"
+dada2:
+  maxN: 0.0
+  multithread: 32.0
+  compress: no
+cutadapt:
+  app: /mnt/modules/bin/dada2/1.12/bin/cutadapt
+  --minimum-length: 25.0
+  -n: 2.0
