@@ -7,7 +7,7 @@ library(yaml)
 library(readr)
 library(ShortRead)  
 library(Biostrings)
-library(config)
+library(configr)
 library(futile.logger)
 
 
@@ -31,7 +31,7 @@ make_path <- function(path){
 #' @param primer character, pattern string
 #' @param fn XString subject to match
 #' @return numeric, count of hits
-count_primer_its <- function(primer, fn) {
+count_primer_hits <- function(primer, fn) {
   nhits <- Biostrings::vcountPattern(primer, 
                                      ShortRead::sread(ShortRead::readFastq(fn)), 
                                      fixed = FALSE)
@@ -52,24 +52,75 @@ all_orients <- function(primer = "TTGAAAA-CTC-N")  {
   return(sapply(orients, toString))                                                                                                 
 } 
 
+#' Check the configuration to make sure it is complete, borrowing from defaults as needed.
+#'
+#'
+#' @param x list, configuration list
+#' @param default, list default configuration
+check_configuration <- function(
+	x = list(foo = list(bar = 7, biz = "h"), 
+	         dog = list(drool = TRUE)), 
+	default = list(foo = list(bar = 9, biz = "p"), 
+								 fish = list(pickled = "yum", breakfast = TRUE),
+	               dog = list(drool = TRUE, quantity = "a lot"),
+	               cat = list(hairball = TRUE))){
+
+	nm_d <- names(default)
+	ix <- nm_d %in% names(x)
+	if (any(!ix))	x[nm_d[!ix]] <- default[nm_d[!ix]]
+	
+	for (nm in nm_d){
+		nms <- names(default[[nm]])
+		ix <- nms %in% names(x[[nm]])
+		if (any(!ix)){
+			wix <- which(ix)
+			for (i in wix) x[[nm]][[nms[i]]] <- default[[nm]][[nms[i]]]
+		}
+	}
+	x
+}
+
+
+#' Default configuration - softwired for now
+#'
+#' @return named and nested configuration list
+default_configuration <- function(){
+
+	list(
+	  email = "btupper@bigelow.org", 
+    input_path = ".", 
+    output_path = ".", 
+    dada2 = list(
+      maxN = 0, 
+      multithread = 32, 
+      compress = FALSE), 
+    cutadapt = list(
+    	app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
+      `--minimum-length` = 25, 
+      `-n` = 2), 
+    primer_benchmarks = list(
+        FWD = "CYGCGGTAATTCCAGCTC", 
+        REV = "AYGGTATCTRATCRTCTTYG"))
+}
+
 #' Get the configuration use default if needed
 #' 
+#' @param x configuration filename
 #' @param default list describing the default
 #' @return list config values
-get_configuration <- function(
-  default = list(email = "btupper@bigelow.org", input+path = ".", output_path = "./output", 
-                 dada2 = list(maxN = 0, multithread = 32, compress = FALSE), 
-                 cutadapt = list(app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
-                                 `--minimum-length` = 25, `-n` = 2))){
+get_configuration <- function( x = args <- commandArgs(trailingOnly = TRUE),
+  default = default_configuration()){
   
-  args <- commandArgs(trailingOnly = TRUE)
-  if (length(args) == 0) {
-    cfg <- default
+  if (length(x) == 0) {
+    cfg <- default_configuration()
   } else {
-    cfg <- try(configr::read.config(args[1]))
-    if (inherits(cfg, 'try-error'))
+    cfg <- try(configr::read.config(x[1]))
+    if (inherits(cfg, 'try-error')){
       print(cfg)
-      stop("failed to read config file:", args[1])
+      stop("failed to read config file:", x[1])
+    }
+    # TODO
+    cfg <- check_configuration(cfg, default)
   }
   cfg
 }
@@ -100,7 +151,7 @@ list_fastq <- function(path,
 #' @param ... other arguments for \code{\link[dada2]{filterAndTrim}}
 #' @return integer matrix see \code{\link[dada2]{filterAndTrim}}
 filter_and_trim <- function(fq, 
-                            subdiretcory = 'filtN',
+                            subdirectory = 'filtN',
                             maxN = 0, 
                             multithread = 32, 
                             compress = FALSE,
@@ -117,26 +168,38 @@ filter_and_trim <- function(fq,
   
 }
 
+
+
+main <- function(){
+
 CFG <- get_configuration()
 
 if (nchar(Sys.which(CFG$cutadapt$app)) == 0){
   stop("cutadapt application not found:", CFG$cutadapt$app)
 }
 
-if (!file.exists(CFG$input_path)) stop("input path not found:", CFG$input_path)
+if (!dir.exists(CFG$input_path)) stop("input path not found:", CFG$input_path)
 if (!make_path(CFG$output_path)) stop("output path not created:", CFG$output_path)
 
-fq <- list_fastq(CFG$input_path)
-if (!all.equal(lengths(fq)))
-    stop(sprintf("unequal number of fastq files: %i forward and %i reverse", 
-                 length(fq$forward), length(fq$reverse)))
+fq_files <- list_fastq(CFG$input_path)
 
-mat <- filter_and_trim(fq, 
+if (length(fq_files[[1]]) <= 0)
+    stop("fastq files not found:", CFG$input_path )
+if (length(fq_files[[1]]) != length(fq_files[[2]]))
+    stop(sprintf("unequal number of fastq files: %i forward and %i reverse", 
+                 length(fq_files$forward), length(fq_files$reverse)))
+
+
+FWD.orients <- all_orients(CFG$primer_benchmarks$FWD) 
+REV.orients <- all_orients(CFG$primer_benchmarks$REV) 
+
+mat <- filter_and_trim(fq_files, 
                        subdirectory = "filtN",
                        maxN = CFG$dada2$maxN, 
                        multithread = CFG$dada2$multithread, 
                        compress = CFG$dada2$compress)
 
+}
 
 
 

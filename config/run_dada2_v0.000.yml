@@ -1,6 +1,10 @@
+# edna-dada2 configuration file
+#
+# required:  email, input_path, output_path
+# all other values have defaults if unspecified
 email: btupper@bigelow.org
-input_path: "."
-output_path: "./output"
+input_path: "/home/btupper/edna/data/examples/SK_18S_raw_data"
+output_path: "/home/btupper/edna/data/examples/SK_18S_raw_data_results"
 dada2:
   maxN: 0.0
   multithread: 32.0
@@ -9,3 +13,6 @@ cutadapt:
   app: /mnt/modules/bin/dada2/1.12/bin/cutadapt
   --minimum-length: 25.0
   -n: 2.0
+primer_benchmarks:
+  FWD: "CYGCGGTAATTCCAGCTC"
+  REV: "AYGGTATCTRATCRTCTTYG"
