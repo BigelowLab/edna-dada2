@@ -149,6 +149,7 @@ list_fastq <- function(path,
 #' @param maxN numeric see \code{\link[dada2]{filterAndTrim}}
 #' @param multithread numeric see \code{\link[dada2]{filterAndTrim}}
 #' @param compress logical see \code{\link[dada2]{filterAndTrim}}
+#' @param form desired output format - either matrix with rown names of table (tibble)
 #' @param ... other arguments for \code{\link[dada2]{filterAndTrim}}
 #' @return integer matrix see \code{\link[dada2]{filterAndTrim}}
 filter_and_trim <- function(fq, 
@@ -156,16 +157,22 @@ filter_and_trim <- function(fq,
                             maxN = 0, 
                             multithread = 32, 
                             compress = FALSE,
+                            form = c("matrix", "table")[2],
                             ...){
   
   ffilt <- file.path(dirname(fq$forward), subdirectory, basename(fq$forward))
   rfilt <- file.path(dirname(fq$reverse), subdirectory, basename(fq$reverse))
-  dada2::filterAndTrim(fq$forward, ffilt, 
+  x <- dada2::filterAndTrim(fq$forward, ffilt, 
                                rev = fq$reverse, filt.rev = rfilt,
                                maxN = maxN, 
                                multithread = multithread, 
                                compress = compress,
                                ...)
+	if (tolower(form[1]) == 'table') {
+		n <- rownames(x)
+		x <- dplyr::as_tibble(x, rownames = "name")
+	}
+	x
 }
 
 
