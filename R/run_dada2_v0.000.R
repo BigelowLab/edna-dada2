@@ -3,7 +3,6 @@
 #' 
 #' 
 library(dada2)
-library(yaml)
 library(dplyr)
 library(readr)
 library(ShortRead)  
@@ -32,11 +31,37 @@ make_path <- function(path){
 #' @param primer character, pattern string
 #' @param fn XString subject to match
 #' @return numeric, count of hits
-count_primer_hits <- function(primer, fn) {
+primer_hits <- function(primer, fn) {
   nhits <- Biostrings::vcountPattern(primer, 
                                      ShortRead::sread(ShortRead::readFastq(fn)), 
                                      fixed = FALSE)
   return(sum(nhits > 0))
+}
+
+
+
+#' Compute primer counts
+#'
+#' @param FWD character, forward primer
+#' @param REV character, reverse primer
+#' @param fn_FWD XString forward subject to match
+#' @param fn_REV XString, reverse subject to match
+#' @param form character, desired output format - either 'matrix' with row names or "table" (tibble)
+#' @return table or matrix of counts
+primer_counts <- function(FWD, REV, fn_FWD, fn_REV,
+	form = c("matrix", "table")[2]){
+	
+	x <- rbind(
+  	FWD.ForwardReads = sapply(FWD, primer_hits, fn = fn_FWD[[1]]),
+  	FWD.ReverseReads = sapply(FWD, primer_hits, fn = fn_REV[[1]]),
+  	REV.ForwardReads = sapply(REV, primer_hits, fn = fn_FWD[[1]]),
+  	REV.ReverseReads = sapply(REV, primer_hits, fn = fn_REV[[1]]))
+	
+	if (tolower(form[1]) == 'table'){
+		x <- dplyr::as_tibble(x, rownames = "name")
+	}
+	
+	x
 }
 
 
@@ -127,6 +152,30 @@ get_configuration <- function( x =  commandArgs(trailingOnly = TRUE),
 }
 
 
+#' Strip the extension(s) off of a filename
+#'
+#' Note if ext is ".fastq" then ".fastq.gz" and ".fastq.tar.gz" will also be stripped
+#''
+#' @param filename character one or more filenames
+#' @param ext character, one or more extension patterns
+#' @return filename with extension stripped
+strip_extension <- function(filename = c("BR2_2016_S216_L001_R2_001.fastq", "foobar.fastq.gz", "fuzzbaz.txt"),
+	ext = ".fastq"){
+	
+	ix <- gregexpr(ext, filename, fixed = TRUE)
+	sapply(seq_along(ix), 
+		function(i){
+			if (ix[[i]] != -1) {
+				s <- substring(filename[i], 1, ix[[i]]-1)
+			} else {
+				s <- filename[i]
+			}
+			s
+		})
+	
+	
+	}
+
 #' List fastq files and separate into forward and reverse reads
 #' 
 #' @param path character, the input path
@@ -176,6 +225,49 @@ filter_and_trim <- function(fq,
 }
 
 
+#' Run cutadapt
+#'
+#' @param cut_files two element list for forward and reverse cutadapt results to be created
+#' @param filt_files two element list of forward and reverse filtered files
+#' @param CFG list of configuration
+#' @param save_output logical, if TRUE try to capture the output of cutadapt to text files,
+#'   one per cutadapt file generated, in the cutadapt outpuyt directory
+#' @return numeric codes, one per cut_file pairing as per \code{system2) where 0 means success'
+run_cutadapt <- function(
+	cut_files,
+	filt_files,
+	CFG,
+	save_output = TRUE){
+	
+	FWD.RC <- dada2:::rc(CFG$primer$FWD)
+	REV.RC <- dada2:::rc(CFG$primer$REV)
+	R1.flags <- paste("-g", CFG$primer$FWD, "-a", REV.RC)
+	R2.flags <- paste("-G", CFG$primer$REV, "-A", FWD.RC)
+
+  OK <- sapply(seq_along(cut_files$forward),
+  	function(i){
+  		if (save_output){
+  			ofile <- paste0(strip_extension(cut_files$forward[i]),".cutadapt_output.txt")
+  		} else {s
+  			ofile <- ""
+  		}
+			system2(CFG$cutadapt$app, 
+				args = c(
+					R1.flags, 
+					R2.flags, 
+					"-n", CFG$cutadapt[["-n"]],
+	 				"--minimum-length", CFG$cutadapt[["--minimum-length"]], 
+	 				"-o", cut_files$forward[i], 
+	 				"-p", cut_files$reverse[i],
+	 				filt_files$forward[i], 
+	 				filt_files$reverse[i]),
+	 			stdout = ofile)
+		})
+	OK
+}
+
+
+
 
 # main processing step
 main <- function(){
@@ -201,13 +293,29 @@ if (length(fq_files[[1]]) != length(fq_files[[2]]))
 FWD.orients <- all_orients(CFG$primer$FWD) 
 REV.orients <- all_orients(CFG$primer$REV) 
 
-mat <- filter_and_trim(fq_files, 
+r <- filter_and_trim(fq_files, 
                        subdirectory = "filtN",
                        maxN = CFG$dada2$maxN, 
                        multithread = CFG$dada2$multithread, 
                        compress = CFG$dada2$compress)
 
-}
+filt_files <- list_fastq(file.path(CFG$input_path, "filtN"))
+
+r2 <- primer_counts(FWD.orients, REV.orients, filt_files$forward, filt_files$reverse)
+
+cut_path <- file.path(CFG$input_path, "cutadapt")
+if (!make_path(cut_path)) stop("cut_path not created:", cut_path)
+
+cut_files <- lapply(filt_files,
+	function(f){
+		file.path(cut_path, basename(f))
+	})
+
+cut_ok <- run_cutadapt(cut_files, filt_files, CFG, save_output = TRUE)
+
+
+
+} #main
 
 
 
