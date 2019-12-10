@@ -4,6 +4,7 @@
 #' 
 library(dada2)
 library(yaml)
+library(dplyr)
 library(readr)
 library(ShortRead)  
 library(Biostrings)
@@ -98,7 +99,7 @@ default_configuration <- function(){
     	app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
       `--minimum-length` = 25, 
       `-n` = 2), 
-    primer_benchmarks = list(
+    primer = list(
         FWD = "CYGCGGTAATTCCAGCTC", 
         REV = "AYGGTATCTRATCRTCTTYG"))
 }
@@ -108,7 +109,7 @@ default_configuration <- function(){
 #' @param x configuration filename
 #' @param default list describing the default
 #' @return list config values
-get_configuration <- function( x = args <- commandArgs(trailingOnly = TRUE),
+get_configuration <- function( x =  commandArgs(trailingOnly = TRUE),
   default = default_configuration()){
   
   if (length(x) == 0) {
@@ -165,14 +166,14 @@ filter_and_trim <- function(fq,
                                multithread = multithread, 
                                compress = compress,
                                ...)
-  
 }
 
 
 
+# main processing step
 main <- function(){
 
-CFG <- get_configuration()
+CFG <- get_configuration(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml")
 
 if (nchar(Sys.which(CFG$cutadapt$app)) == 0){
   stop("cutadapt application not found:", CFG$cutadapt$app)
@@ -190,8 +191,8 @@ if (length(fq_files[[1]]) != length(fq_files[[2]]))
                  length(fq_files$forward), length(fq_files$reverse)))
 
 
-FWD.orients <- all_orients(CFG$primer_benchmarks$FWD) 
-REV.orients <- all_orients(CFG$primer_benchmarks$REV) 
+FWD.orients <- all_orients(CFG$primer$FWD) 
+REV.orients <- all_orients(CFG$primer$REV) 
 
 mat <- filter_and_trim(fq_files, 
                        subdirectory = "filtN",
