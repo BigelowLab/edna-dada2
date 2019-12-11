@@ -2,13 +2,16 @@
 #' 
 #' 
 #' 
-library(dada2)
+
 library(dplyr)
 library(readr)
-library(ShortRead)  
-library(Biostrings)
 library(configr)
 library(futile.logger)
+
+library(ShortRead)  
+library(Biostrings)
+library(dada2)
+
 
 
 #' Given a path - make it if it doesn't exist
