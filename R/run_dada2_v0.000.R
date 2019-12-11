@@ -7,6 +7,7 @@ library(dplyr)
 library(readr)
 library(configr)
 library(futile.logger)
+library(patchwork)
 
 library(ShortRead)  
 library(Biostrings)
@@ -125,11 +126,11 @@ default_configuration <- function(){
       compress = FALSE), 
     cutadapt = list(
       app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
-      `--minimum-length` = 25, 
-      `-n` = 2), 
+      more_args = "--minimum-length = 25 -n = 2"), 
     primer = list(
         FWD = "CYGCGGTAATTCCAGCTC", 
-        REV = "AYGGTATCTRATCRTCTTYG"))
+        REV = "AYGGTATCTRATCRTCTTYG"),
+    taxa_level = c("Kingdom", "Supergroup", "Division", "Class", "Order", "Family", "Genus", "Species"))
 }
 
 #' Get the configuration use default if needed
@@ -206,20 +207,16 @@ list_fastq <- function(path,
 #' @return integer matrix see \code{\link[dada2]{filterAndTrim}}
 filter_and_trim <- function(fq, 
                             subdirectory = 'filtN',
-                            maxN = 0, 
-                            multithread = 32, 
-                            compress = FALSE,
                             form = c("matrix", "table")[2],
                             ...){
   
   ffilt <- file.path(dirname(fq$forward), subdirectory, basename(fq$forward))
   rfilt <- file.path(dirname(fq$reverse), subdirectory, basename(fq$reverse))
-  x <- dada2::filterAndTrim(fq$forward, ffilt, 
-                               rev = fq$reverse, filt.rev = rfilt,
-                               maxN = maxN, 
-                               multithread = multithread, 
-                               compress = compress,
-                               ...)
+  x <- dada2::filterAndTrim(fq$forward, 
+  													ffilt, 
+                            rev = fq$reverse, 
+                            filt.rev = rfilt,
+                            ...)
   if (tolower(form[1]) == 'table') {
     n <- rownames(x)
     x <- dplyr::as_tibble(x, rownames = "name")
@@ -235,12 +232,14 @@ filter_and_trim <- function(fq,
 #' @param CFG list of configuration
 #' @param save_output logical, if TRUE try to capture the output of cutadapt to text files,
 #'   one per cutadapt file generated, in the cutadapt outpuyt directory
+#' @param save_graphics logical, if TRUE try to capture quality plots form the resulting cut_files
 #' @return numeric codes, one per cut_file pairing as per \code{system2) where 0 means success'
 run_cutadapt <- function(
   cut_files,
   filt_files,
   CFG,
-  save_output = TRUE){
+  save_output = TRUE,
+  save_graphics = FALSE){
   
   FWD.RC <- dada2:::rc(CFG$primer$FWD)
   REV.RC <- dada2:::rc(CFG$primer$REV)
@@ -250,7 +249,7 @@ run_cutadapt <- function(
   OK <- sapply(seq_along(cut_files$forward),
     function(i){
       if (save_output){
-        ofile <- paste0(strip_extension(cut_files$forward[i]),".cutadapt_output.txt")
+        ofile <- paste0(strip_extension(cut_files$forward[1]),".cutadapt_output.txt")
       } else {s
         ofile <- ""
       }
@@ -258,14 +257,20 @@ run_cutadapt <- function(
         args = c(
           R1.flags, 
           R2.flags, 
-          "-n", CFG$cutadapt[["-n"]],
-           "--minimum-length", CFG$cutadapt[["--minimum-length"]], 
+          CFG$more_args, 
            "-o", cut_files$forward[i], 
            "-p", cut_files$reverse[i],
            filt_files$forward[i], 
            filt_files$reverse[i]),
          stdout = ofile)
     })
+  if (all(OK == 0) & save_graphics){
+  	ix <- seq_len(max(length(cut_files$forward), 2))
+  	ofile <- paste0(strip_extension(cut_files$forward[1]),".cutadapt_quality.pdf")
+    pdf(ofile)
+  	try(dada2::plotQualityProfile(cut_files$forward[ix]) +  dada2::plotQualityProfile(cut_files$reverse[ix]))
+  	dev.off()
+  }
   OK
 }
 
@@ -296,15 +301,15 @@ if (length(fq_files[[1]]) != length(fq_files[[2]]))
 FWD.orients <- all_orients(CFG$primer$FWD) 
 REV.orients <- all_orients(CFG$primer$REV) 
 
-r <- filter_and_trim(fq_files, 
-                       subdirectory = "filtN",
-                       maxN = CFG$dada2$maxN, 
-                       multithread = CFG$dada2$multithread, 
-                       compress = CFG$dada2$compress)
+filtN_r <- filter_and_trim(fq_files, 
+                       subdirectory = CFG$dada2_trimAndFilter_filtN$subdirectory,
+                       maxN = CFG$dada2_trimAndFilter_filtN$maxN, 
+                       multithread = CFG$dada2_trimAndFilter_filtN$multithread, 
+                       compress = CFG$dada2_trimAndFilter_filtN$compress)
 
-filt_files <- list_fastq(file.path(CFG$input_path, "filtN"))
+filtN_files <- list_fastq(file.path(CFG$input_path, "filtN"))
 
-r2 <- primer_counts(FWD.orients, REV.orients, filt_files$forward, filt_files$reverse)
+pcounts <- primer_counts(FWD.orients, REV.orients, filtN_files$forward, filtN_files$reverse)
 
 cut_path <- file.path(CFG$input_path, "cutadapt")
 if (!make_path(cut_path)) stop("cut_path not created:", cut_path)
@@ -314,7 +319,21 @@ cut_files <- lapply(filt_files,
     file.path(cut_path, basename(f))
   })
 
-cut_ok <- run_cutadapt(cut_files, filt_files, CFG, save_output = TRUE)
+# turn of graphics until we find issue with printing reverse
+cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE,, save_graphcs = FALSE)
+cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse)
+
+filtered_r <- filter_and_trim(cut_files, 
+                       subdirectory = CFG$dada2_trimAndFilter_filtered$subdirectory,
+                       trunQ = CFG$dada2_trimAndFilter_filtered$trunQ,
+                       trunLen = CFG$dada2_trimAndFilter_filtered$trunLen,
+                       maxEE = CFG$dada2_trimAndFilter_filtered$maxEE,
+                       rm.phix= CFG$dada2_trimAndFilter_filtered$rm.phix,
+                       maxN = CFG$dada2_trimAndFilter_filtered$maxN, 
+                       multithread = CFG$dada2_trimAndFilter_filtered$multithread, 
+                       compress = CFG$dada2_trimAndFilter_filtered$compress)
+
+
 
 
 

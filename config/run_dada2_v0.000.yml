@@ -2,17 +2,39 @@
 #
 # required:  email, input_path, output_path
 # all other values have defaults if unspecified
-email: btupper@bigelow.org
+email: "btupper@bigelow.org"
 input_path: "/home/btupper/edna/data/examples/ben_demo_raw"
 output_path: "/home/btupper/edna/data/examples/ben_demo_raw_results"
-dada2:
+dada2_filterAndTrim_filtN:
+  subdir: "filtN"
   maxN: 0.0
   multithread: 32.0
   compress: no
 cutadapt:
-  app: /mnt/modules/bin/dada2/1.12/bin/cutadapt
-  --minimum-length: 25.0
-  -n: 2.0
+  app: "/mnt/modules/bin/dada2/1.12/bin/cutadapt"
+  more_args: "--minimum-length 25.0 -n 2.0"
+dada2_filterAndTrim_filtered:
+  subdir: "filtered"
+  truncLen: 
+  - 275
+  - 225
+  maxN: 0.0
+  maxEE:
+  - 2
+  - 2
+  truncQ: 2
+  rm.phix: yes
+  multithread: 32.0
+  compress: no
 primer:
   FWD: "CYGCGGTAATTCCAGCTC"
   REV: "AYGGTATCTRATCRTCTTYG"
+taxa_levels:
+- "Kingdom"
+- "Supergroup"
+- "Division"
+- "Class"
+- "Order"
+- "Family"
+- "Genus"
+- "Species"
