@@ -49,19 +49,19 @@ primer_hits <- function(primer, fn) {
 #' @param form character, desired output format - either 'matrix' with row names or "table" (tibble)
 #' @return table or matrix of counts
 primer_counts <- function(FWD, REV, fn_FWD, fn_REV,
-	form = c("matrix", "table")[2]){
-	
-	x <- rbind(
-  	FWD.ForwardReads = sapply(FWD, primer_hits, fn = fn_FWD[[1]]),
-  	FWD.ReverseReads = sapply(FWD, primer_hits, fn = fn_REV[[1]]),
-  	REV.ForwardReads = sapply(REV, primer_hits, fn = fn_FWD[[1]]),
-  	REV.ReverseReads = sapply(REV, primer_hits, fn = fn_REV[[1]]))
-	
-	if (tolower(form[1]) == 'table'){
-		x <- dplyr::as_tibble(x, rownames = "name")
-	}
-	
-	x
+  form = c("matrix", "table")[2]){
+  
+  x <- rbind(
+    FWD.ForwardReads = sapply(FWD, primer_hits, fn = fn_FWD[[1]]),
+    FWD.ReverseReads = sapply(FWD, primer_hits, fn = fn_REV[[1]]),
+    REV.ForwardReads = sapply(REV, primer_hits, fn = fn_FWD[[1]]),
+    REV.ReverseReads = sapply(REV, primer_hits, fn = fn_REV[[1]]))
+  
+  if (tolower(form[1]) == 'table'){
+    x <- dplyr::as_tibble(x, rownames = "name")
+  }
+  
+  x
 }
 
 
@@ -69,13 +69,13 @@ primer_counts <- function(FWD, REV, fn_FWD, fn_REV,
 #' 
 #' @param primer input sequence, see \code{\link[Biostrings]{DNAString}}
 #' @return name character vector
-all_orients <- function(primer = "TTGAAAA-CTC-N")  {                                                                                                                                 
-  dna <- Biostrings::DNAString(primer)                                                                                                           
+all_orients <- function(primer = "TTGAAAA-CTC-N")  {
+  dna <- Biostrings::DNAString(primer)
   orients <- c(Forward = dna, 
              Complement =  complement(dna), 
              Reverse = reverse(dna), 
              RevComp = reverseComplement(dna)) 
-  return(sapply(orients, toString))                                                                                                 
+  return(sapply(orients, toString))
 } 
 
 #' Check the configuration to make sure it is complete, borrowing from defaults as needed.
@@ -84,26 +84,26 @@ all_orients <- function(primer = "TTGAAAA-CTC-N")  {
 #' @param x list, configuration list
 #' @param default, list default configuration
 check_configuration <- function(
-	x = list(foo = list(bar = 7, biz = "h"), 
-	         dog = list(drool = TRUE)), 
-	default = list(foo = list(bar = 9, biz = "p"), 
-								 fish = list(pickled = "yum", breakfast = TRUE),
-	               dog = list(drool = TRUE, quantity = "a lot"),
-	               cat = list(hairball = TRUE))){
+  x = list(foo = list(bar = 7, biz = "h"), 
+           dog = list(drool = TRUE)), 
+  default = list(foo = list(bar = 9, biz = "p"), 
+                 fish = list(pickled = "yum", breakfast = TRUE),
+                 dog = list(drool = TRUE, quantity = "a lot"),
+                 cat = list(hairball = TRUE))){
 
-	nm_d <- names(default)
-	ix <- nm_d %in% names(x)
-	if (any(!ix))	x[nm_d[!ix]] <- default[nm_d[!ix]]
-	
-	for (nm in nm_d){
-		nms <- names(default[[nm]])
-		ix <- nms %in% names(x[[nm]])
-		if (any(!ix)){
-			wix <- which(ix)
-			for (i in wix) x[[nm]][[nms[i]]] <- default[[nm]][[nms[i]]]
-		}
-	}
-	x
+  nm_d <- names(default)
+  ix <- nm_d %in% names(x)
+  if (any(!ix))  x[nm_d[!ix]] <- default[nm_d[!ix]]
+  
+  for (nm in nm_d){
+    nms <- names(default[[nm]])
+    ix <- nms %in% names(x[[nm]])
+    if (any(!ix)){
+      wix <- which(ix)
+      for (i in wix) x[[nm]][[nms[i]]] <- default[[nm]][[nms[i]]]
+    }
+  }
+  x
 }
 
 
@@ -112,8 +112,8 @@ check_configuration <- function(
 #' @return named and nested configuration list
 default_configuration <- function(){
 
-	list(
-	  email = "btupper@bigelow.org", 
+  list(
+    email = "btupper@bigelow.org", 
     input_path = ".", 
     output_path = ".", 
     dada2 = list(
@@ -121,7 +121,7 @@ default_configuration <- function(){
       multithread = 32, 
       compress = FALSE), 
     cutadapt = list(
-    	app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
+      app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
       `--minimum-length` = 25, 
       `-n` = 2), 
     primer = list(
@@ -160,21 +160,21 @@ get_configuration <- function( x =  commandArgs(trailingOnly = TRUE),
 #' @param ext character, one or more extension patterns
 #' @return filename with extension stripped
 strip_extension <- function(filename = c("BR2_2016_S216_L001_R2_001.fastq", "foobar.fastq.gz", "fuzzbaz.txt"),
-	ext = ".fastq"){
-	
-	ix <- gregexpr(ext, filename, fixed = TRUE)
-	sapply(seq_along(ix), 
-		function(i){
-			if (ix[[i]] != -1) {
-				s <- substring(filename[i], 1, ix[[i]]-1)
-			} else {
-				s <- filename[i]
-			}
-			s
-		})
-	
-	
-	}
+  ext = ".fastq"){
+  
+  ix <- gregexpr(ext, filename, fixed = TRUE)
+  sapply(seq_along(ix), 
+    function(i){
+      if (ix[[i]] != -1) {
+        s <- substring(filename[i], 1, ix[[i]]-1)
+      } else {
+        s <- filename[i]
+      }
+      s
+    })
+  
+  
+  }
 
 #' List fastq files and separate into forward and reverse reads
 #' 
@@ -217,11 +217,11 @@ filter_and_trim <- function(fq,
                                multithread = multithread, 
                                compress = compress,
                                ...)
-	if (tolower(form[1]) == 'table') {
-		n <- rownames(x)
-		x <- dplyr::as_tibble(x, rownames = "name")
-	}
-	x
+  if (tolower(form[1]) == 'table') {
+    n <- rownames(x)
+    x <- dplyr::as_tibble(x, rownames = "name")
+  }
+  x
 }
 
 
@@ -234,43 +234,43 @@ filter_and_trim <- function(fq,
 #'   one per cutadapt file generated, in the cutadapt outpuyt directory
 #' @return numeric codes, one per cut_file pairing as per \code{system2) where 0 means success'
 run_cutadapt <- function(
-	cut_files,
-	filt_files,
-	CFG,
-	save_output = TRUE){
-	
-	FWD.RC <- dada2:::rc(CFG$primer$FWD)
-	REV.RC <- dada2:::rc(CFG$primer$REV)
-	R1.flags <- paste("-g", CFG$primer$FWD, "-a", REV.RC)
-	R2.flags <- paste("-G", CFG$primer$REV, "-A", FWD.RC)
+  cut_files,
+  filt_files,
+  CFG,
+  save_output = TRUE){
+  
+  FWD.RC <- dada2:::rc(CFG$primer$FWD)
+  REV.RC <- dada2:::rc(CFG$primer$REV)
+  R1.flags <- paste("-g", CFG$primer$FWD, "-a", REV.RC)
+  R2.flags <- paste("-G", CFG$primer$REV, "-A", FWD.RC)
 
   OK <- sapply(seq_along(cut_files$forward),
-  	function(i){
-  		if (save_output){
-  			ofile <- paste0(strip_extension(cut_files$forward[i]),".cutadapt_output.txt")
-  		} else {s
-  			ofile <- ""
-  		}
-			system2(CFG$cutadapt$app, 
-				args = c(
-					R1.flags, 
-					R2.flags, 
-					"-n", CFG$cutadapt[["-n"]],
-	 				"--minimum-length", CFG$cutadapt[["--minimum-length"]], 
-	 				"-o", cut_files$forward[i], 
-	 				"-p", cut_files$reverse[i],
-	 				filt_files$forward[i], 
-	 				filt_files$reverse[i]),
-	 			stdout = ofile)
-		})
-	OK
+    function(i){
+      if (save_output){
+        ofile <- paste0(strip_extension(cut_files$forward[i]),".cutadapt_output.txt")
+      } else {s
+        ofile <- ""
+      }
+      system2(CFG$cutadapt$app, 
+        args = c(
+          R1.flags, 
+          R2.flags, 
+          "-n", CFG$cutadapt[["-n"]],
+           "--minimum-length", CFG$cutadapt[["--minimum-length"]], 
+           "-o", cut_files$forward[i], 
+           "-p", cut_files$reverse[i],
+           filt_files$forward[i], 
+           filt_files$reverse[i]),
+         stdout = ofile)
+    })
+  OK
 }
 
 
 
 
 # main processing step
-main <- function(){
+main <- function(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml"){
 
 CFG <- get_configuration(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml")
 
@@ -307,16 +307,14 @@ cut_path <- file.path(CFG$input_path, "cutadapt")
 if (!make_path(cut_path)) stop("cut_path not created:", cut_path)
 
 cut_files <- lapply(filt_files,
-	function(f){
-		file.path(cut_path, basename(f))
-	})
+  function(f){
+    file.path(cut_path, basename(f))
+  })
 
 cut_ok <- run_cutadapt(cut_files, filt_files, CFG, save_output = TRUE)
 
 
 
 } #main
-
-
 
 
