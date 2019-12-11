@@ -16,27 +16,21 @@ now (during development) we can exclude it.
 
 We found success by initializing an empty packrat, and then manually adding packages.
 
-+ load the module with the version of R you want
+Load the module with the version of R you want
 
 ```
 $ module use /mod/bigelow
 $ module laod R/dada2
 ```
 
-+ set your working directory to the packrat project 
+Set your working directory to the packrat project and invoke R (without ``--vanilla` I have learned)
 
 ```
 $ cd /path/to/my/project
-```
-
-+ invoke R (without --vanilla I have learned (painfully!))
-
-```
 $ R
-
 ```
 
-Once R is fired up, set package repositories initialize a pakrat repos but prevent auto installation of packages
+Once R is fired up, set package repositories initialize a packrat repos but prevent auto installation of packages
 
 ```
 options(repos=c(getOption("repos"), "https://cran.mtu.edu/", BiocManager::repositories()))
@@ -46,7 +40,7 @@ packrat::init(infer.dependencies = FALSE)
 packrat::snapshot(infer.dependencies = FALSE)
 ```
 
-Now continue with other packages - not the snapshot partway through, it's not required
+Now continue with other packages - note the snapshot partway through, it's not required
 but what the  heck.
 
 ```
@@ -68,8 +62,7 @@ packrat::snapshot(infer.dependencies = FALSE)
 
 ## packrat - a peek inside
 
-Let's see what we have in our project library.  Note they are all in the project library,
-`/home/btupper/edna/edna-dada2/packrat/lib/x86_64-conda_cos6-linux-gnu/3.5.1`.
+Let's see what we have in our project library.  Note they are within the project packrat library.
 
 
 ```
