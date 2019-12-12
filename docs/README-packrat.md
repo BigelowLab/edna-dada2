@@ -20,7 +20,7 @@ Load the module with the version of R you want
 
 ```
 $ module use /mod/bigelow
-$ module laod R/dada2
+$ module load R/dada2      #loads R 3.5.1     or is is dada2/1.12 which loads R 3.6 ??
 ```
 
 Set your working directory to the packrat project and invoke R (without ``--vanilla` I have learned)

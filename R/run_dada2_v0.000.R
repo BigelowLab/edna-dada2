@@ -116,21 +116,42 @@ check_configuration <- function(
 #' @return named and nested configuration list
 default_configuration <- function(){
 
-  list(
-    email = "btupper@bigelow.org", 
-    input_path = ".", 
-    output_path = ".", 
-    dada2 = list(
-      maxN = 0, 
+	list(
+		version = "v0.000", 
+		email = "btupper@bigelow.org", 
+		input_path = "/home/btupper/edna/data/examples/ben_demo_raw", 
+    output_path = "/home/btupper/edna/data/examples/ben_demo_raw_results", 
+    dada2_filterAndTrim_filtN = list(
+    	subdir = "filtN", 
+    	maxN = 0, 
       multithread = 32, 
       compress = FALSE), 
     cutadapt = list(
       app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
-      more_args = "--minimum-length = 25 -n = 2"), 
+      more_args = "--minimum-length 25.0 -n 2.0"), 
+    dada2_filterAndTrim_filtered = list(
+    	subdir = "filtered", 
+      truncLen = c(275L, 225L), 
+      maxN = 0, 
+      maxEE = c(2L, 2L), 
+      truncQ = 2L, 
+      rm.phix = TRUE, 
+      multithread = 32, 
+      compress = FALSE), 
     primer = list(
-        FWD = "CYGCGGTAATTCCAGCTC", 
-        REV = "AYGGTATCTRATCRTCTTYG"),
-    taxa_level = c("Kingdom", "Supergroup", "Division", "Class", "Order", "Family", "Genus", "Species"))
+    	FWD = "CYGCGGTAATTCCAGCTC", 
+    	REV = "AYGGTATCTRATCRTCTTYG"), 
+    taxa_levels = c(
+    	"Kingdom", 
+    	"Supergroup", 
+    	"Division", 
+    	"Class", 
+    	"Order", 
+    	"Family", 
+    	"Genus", 
+    	"Species")
+    )
+    	
 }
 
 #' Get the configuration use default if needed
@@ -197,30 +218,32 @@ list_fastq <- function(path,
 
 #' Filter and trim
 #' 
-#' @param fq list of forward and reverse fastq files
-#' @param subdirectory the directory where the new fastqs are stored
+#' @param filelist list of forward and reverse fastq files
+#' @param output_path character, the output path
 #' @param maxN numeric see \code{\link[dada2]{filterAndTrim}}
 #' @param multithread numeric see \code{\link[dada2]{filterAndTrim}}
 #' @param compress logical see \code{\link[dada2]{filterAndTrim}}
-#' @param form desired output format - either matrix with rown names of table (tibble)
 #' @param ... other arguments for \code{\link[dada2]{filterAndTrim}}
-#' @return integer matrix see \code{\link[dada2]{filterAndTrim}}
-filter_and_trim <- function(fq, 
-                            subdirectory = 'filtN',
-                            form = c("matrix", "table")[2],
+#' @pram save_result logical, save CSV if TRUE
+#' @return integer matrix as tibble see \code{\link[dada2]{filterAndTrim}}
+filter_and_trim <- function(filelist, 
+                            output_path = file.path(dirname(filelist$forward[1]),'filterAndTrim'),
+                            save_results = FALSE,
                             ...){
   
-  ffilt <- file.path(dirname(fq$forward), subdirectory, basename(fq$forward))
-  rfilt <- file.path(dirname(fq$reverse), subdirectory, basename(fq$reverse))
-  x <- dada2::filterAndTrim(fq$forward, 
+  ffilt <- file.path(output_path, basename(filelist$forward))
+  rfilt <- file.path(output_path, basename(filelist$reverse))
+  x <- dada2::filterAndTrim(filelist$forward, 
   													ffilt, 
-                            rev = fq$reverse, 
+                            rev = filelist$reverse, 
                             filt.rev = rfilt,
                             ...)
-  if (tolower(form[1]) == 'table') {
-    n <- rownames(x)
-    x <- dplyr::as_tibble(x, rownames = "name")
-  }
+
+  x <- dplyr::as_tibble(x, rownames = "name")
+  if (save_results) {
+  	x <-	x %>%
+  	readr::write_csv(file.path(output_path, "filter_and_trim-results.csv"))
+  } 	
   x
 }
 
@@ -275,6 +298,76 @@ run_cutadapt <- function(
 }
 
 
+#' Run dada2::learnErrors on a set of fastq files
+#'
+#' @param filelist list of forward and reverse fastq files
+#' @param ... arguments for \code{\link[dada2]{learnErrors}}
+#' @param output_path character, the output path
+#' @param save_output logical, if TRUE save the output to the specified output_path
+#' @param save_graphics logical, if TRUE try to capture quality plots form the resulting cut_files
+learn_errors <- function(filelist, ...,
+	output_path = dirname(filelist$forward[1]),
+	save_output = FALSE, 
+	save_graphics = FALSE
+	){
+
+	errs <- list(
+			forward =  dada2::learnErrors(filelist$forward, ...),
+			reverse =  dada2::learnErrors(filelist$forward, ...)
+		)
+		
+	if (save_output){
+		saveRDS(errs, file = file.path(output_path, "learn_errors.rds"))
+	}
+	
+	if (save_graphics){
+	  pforward <- dada2::plotErrors(errs$forward, nominalQ=TRUE) + 
+	  	ggplot2::ggtitle("Forward")
+	  preverse <- dada2::plotErrors(errs$reverse, nominalQ=TRUE) +
+	  	ggplot2::ggtitle("Reverse")
+		ofile <- file.path(output_path, "learn_errors.pdf")
+	 	pdf(ofile, height = 7.5, width = 10.5)    
+		try(
+			print(pforward + preverse)
+		)
+		dev.off()
+	}
+
+	errs
+}
+
+#' Run dada2::dada
+#'
+#' @param filelist list of forward and reverse fastq files
+#' @params errs list of forward and reverse outputs of learnErrors
+#' @param ... arguments for \code{\link[dada2]{dada}}
+run_dada <- function(filelist, errs, ...){
+	
+
+  filelist <- lapply(filelist, dada2::derepFastq)
+
+	x <- list(
+		forward = dada2::dada(filelist$forward, errs$forward, ...),
+		reverse = dada2::dada(filelist$reverse, errs$reverse, ...)
+	)
+	x
+}
+
+#' Merge pairs ala dada2::mergePairs
+#'
+#' @param filelist list of forward and reverse fastq files
+#' @param dada_r  list of dada2::dada results
+merge_pairs <- function(filelist, dada_r, ...){
+	filelist <- lapply(filelist, dada2::derepFastq)
+	x <- dada2::mergePairs(
+		dada_r$forward, 
+		filelist$forward,
+ 		dada_r$reverse, 
+ 		filelist$reverse, 
+ 		...) 
+
+	x
+}
 
 
 # main processing step
@@ -290,6 +383,7 @@ if (!dir.exists(CFG$input_path)) stop("input path not found:", CFG$input_path)
 if (!make_path(CFG$output_path)) stop("output path not created:", CFG$output_path)
 
 fq_files <- list_fastq(CFG$input_path)
+sample.names <- sapply(strsplit(basename(fq_files$forward), "_"), `[`, 1)
 
 if (length(fq_files[[1]]) <= 0)
     stop("fastq files not found:", CFG$input_path )
@@ -301,39 +395,68 @@ if (length(fq_files[[1]]) != length(fq_files[[2]]))
 FWD.orients <- all_orients(CFG$primer$FWD) 
 REV.orients <- all_orients(CFG$primer$REV) 
 
+##### filterAndTrim filtN
+filtN_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtN$name)
+if (!make_path(filtN_path)) stop("filtN_path not created:", filtN_path)
 filtN_r <- filter_and_trim(fq_files, 
-                       subdirectory = CFG$dada2_trimAndFilter_filtN$subdirectory,
-                       maxN = CFG$dada2_trimAndFilter_filtN$maxN, 
-                       multithread = CFG$dada2_trimAndFilter_filtN$multithread, 
-                       compress = CFG$dada2_trimAndFilter_filtN$compress)
+                       output_path = filtN_path,
+                       maxN = CFG$dada2_filterAndTrim_filtN$maxN, 
+                       multithread = CFG$dada2_filterAndTrim_filtN$multithread, 
+                       compress = CFG$dada2_filterAndTrim_filtN$compress) %>%
+	readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
 
-filtN_files <- list_fastq(file.path(CFG$input_path, "filtN"))
+filtN_files <- list_fastq(filtN_path)
+pcounts <- primer_counts(FWD.orients, REV.orients, filtN_files$forward, filtN_files$reverse) %>%
+		readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-primer-counts.csv")))
 
-pcounts <- primer_counts(FWD.orients, REV.orients, filtN_files$forward, filtN_files$reverse)
 
-cut_path <- file.path(CFG$input_path, "cutadapt")
+###### cutadapt
+cut_path <- file.path(CFG$output_path, "cutadapt")
 if (!make_path(cut_path)) stop("cut_path not created:", cut_path)
 
-cut_files <- lapply(filt_files,
+cut_files <- lapply(filtN_files,
   function(f){
     file.path(cut_path, basename(f))
   })
 
 # turn of graphics until we find issue with printing reverse
-cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE,, save_graphcs = FALSE)
-cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse)
+cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE, save_graphics = FALSE)
+if (all(ok == 0)) {
+	cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse) %>%
+		readr::write_csv(file.path(cut_path, paste0(basename(cut_path), "-primer-counts.csv")))
+} else {
+	stop("one or more cutadapt runs failed: ", paste(cut_ok, collapse = ", "))
+}
 
+##### filterAndTrim filtered
+filtered_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtered$name)
+if (!make_path(filtered_path)) stop("filtered_path not created:", filtered_path)
 filtered_r <- filter_and_trim(cut_files, 
-                       subdirectory = CFG$dada2_trimAndFilter_filtered$subdirectory,
-                       trunQ = CFG$dada2_trimAndFilter_filtered$trunQ,
-                       trunLen = CFG$dada2_trimAndFilter_filtered$trunLen,
-                       maxEE = CFG$dada2_trimAndFilter_filtered$maxEE,
-                       rm.phix= CFG$dada2_trimAndFilter_filtered$rm.phix,
-                       maxN = CFG$dada2_trimAndFilter_filtered$maxN, 
-                       multithread = CFG$dada2_trimAndFilter_filtered$multithread, 
-                       compress = CFG$dada2_trimAndFilter_filtered$compress)
+                       output_path = filtered_path,
+                       truncQ = CFG$dada2_filterAndTrim_filtered$truncQ,
+                       truncLen = CFG$dada2_filterAndTrim_filtered$truncLen,
+                       maxEE = CFG$dada2_filterAndTrim_filtered$maxEE,
+                       rm.phix= CFG$dada2_filterAndTrim_filtered$rm.phix,
+                       maxN = CFG$dada2_filterAndTrim_filtered$maxN,  
+                       compress = CFG$dada2_filterAndTrim_filtered$compress,
+                       multithread = CFG$dada2_filterAndTrim_filtered$multithread) %>%
+	readr::write_csv(file.path(filtered_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
+
+filtered_files <- list_fastq(filtered_path)
+
+errs <- learn_errors(filtered_files,
+	output_path = filtered_path,
+	save_output = TRUE,
+	save_graphics = TRUE)
+
+dada_r <- run_dada(
+	filtered_files, 
+	errs, 
+	multithread = FALSE)  # switch to CFG$dada2_dada_filtered
 
 
+mergers <- merge_pairs(filtered_files, dada_r, verbose = TRUE)
+saveRDS(mergers, file = file.path(filtered_path, "mergers.rds"))
 
 
 
