@@ -9,7 +9,7 @@ output_path: "/home/btupper/edna/data/examples/ben_demo_raw_results"
 dada2_filterAndTrim_filtN:
   name: "filtN"
   maxN: 0.0
-  multithread: 32.0
+  multithread: no
   compress: no
 cutadapt:
   app: "/mnt/modules/bin/dada2/1.12/bin/cutadapt"
@@ -25,20 +25,31 @@ dada2_filterAndTrim_filtered:
   - 2
   truncQ: 2
   rm.phix: yes
-  multithread: 32.0
+  multithread: no
   compress: no
 dada2_dada_filtered:
   name: "dada"
   multithread: 32.0
+dada2_removeBimeraDenovo_seqtab:
+  method: "consensus"
+	multithread: no  
+	verbose: yes
+dada2_assignTaxonomy_nochim:
+  refFasta: "/home/btupper/edna/data/examples/pr2_version_4.12.0_18S_dada2.fasta"
+  minBoot: 0
+  outputBootstraps: yes
+  verbose: yes
+  multithread: no
+  taxLevels:
+  - "Kingdom"
+  - "Supergroup"
+  - "Division"
+  - "Class"
+  - "Order"
+  - "Family"
+  - "Genus"
+  - "Species"
 primer:
   FWD: "CYGCGGTAATTCCAGCTC"
   REV: "AYGGTATCTRATCRTCTTYG"
-taxa_levels:
-- "Kingdom"
-- "Supergroup"
-- "Division"
-- "Class"
-- "Order"
-- "Family"
-- "Genus"
-- "Species"
+

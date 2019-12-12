@@ -110,60 +110,16 @@ check_configuration <- function(
   x
 }
 
-
-#' Default configuration - softwired for now
-#'
-#' @return named and nested configuration list
-default_configuration <- function(){
-
-	list(
-		version = "v0.000", 
-		email = "btupper@bigelow.org", 
-		input_path = "/home/btupper/edna/data/examples/ben_demo_raw", 
-    output_path = "/home/btupper/edna/data/examples/ben_demo_raw_results", 
-    dada2_filterAndTrim_filtN = list(
-    	subdir = "filtN", 
-    	maxN = 0, 
-      multithread = 32, 
-      compress = FALSE), 
-    cutadapt = list(
-      app = "/mnt/modules/bin/dada2/1.12/bin/cutadapt", 
-      more_args = "--minimum-length 25.0 -n 2.0"), 
-    dada2_filterAndTrim_filtered = list(
-    	subdir = "filtered", 
-      truncLen = c(275L, 225L), 
-      maxN = 0, 
-      maxEE = c(2L, 2L), 
-      truncQ = 2L, 
-      rm.phix = TRUE, 
-      multithread = 32, 
-      compress = FALSE), 
-    primer = list(
-    	FWD = "CYGCGGTAATTCCAGCTC", 
-    	REV = "AYGGTATCTRATCRTCTTYG"), 
-    taxa_levels = c(
-    	"Kingdom", 
-    	"Supergroup", 
-    	"Division", 
-    	"Class", 
-    	"Order", 
-    	"Family", 
-    	"Genus", 
-    	"Species")
-    )
-    	
-}
-
 #' Get the configuration use default if needed
 #' 
 #' @param x configuration filename
 #' @param default list describing the default
 #' @return list config values
 get_configuration <- function( x =  commandArgs(trailingOnly = TRUE),
-  default = default_configuration()){
+  default = configr::read.config("/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml")){
   
   if (length(x) == 0) {
-    cfg <- default_configuration()
+    cfg <- default
   } else {
     cfg <- try(configr::read.config(x[1]))
     if (inherits(cfg, 'try-error')){
@@ -369,6 +325,15 @@ merge_pairs <- function(filelist, dada_r, ...){
 	x
 }
 
+#' Count uniques ala \code{\link[dada2{getUniques}]}
+#'
+#' @param x object from which uniques-vector can be extracted
+#' @param ... further arguments for \code{\link[dada2{getUniques}]}
+#' @return 
+count_uniques <- function(x, ...){
+	sum(getUniques(x, ...)) 
+}
+
 
 # main processing step
 main <- function(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml"){
@@ -452,12 +417,41 @@ errs <- learn_errors(filtered_files,
 dada_r <- run_dada(
 	filtered_files, 
 	errs, 
-	multithread = FALSE)  # switch to CFG$dada2_dada_filtered
+	multithread = CFG$dada2_dada_filtered$multithread)  # switch to CFG$dada2_dada_filtered
 
 
 mergers <- merge_pairs(filtered_files, dada_r, verbose = TRUE)
 saveRDS(mergers, file = file.path(filtered_path, "mergers.rds"))
+seqtab <- dada2::makeSequenceTable(mergers) 
+tseqtab <- dplyr::as_tibble(t(seqtab)) %>%
+	readr::write_csv(file.path(filtered_path, "seqtab.csv"))
+seqtab.nochim <- dada2::removeBimeraDenovo(seqtab, 
+	method 			= CFG$dada2_removeBimeraDenovo_seqtab$method, 
+	multithread	= CFG$dada2_removeBimeraDenovo_seqtab$multithread, 
+	verbose     = CFG$dada2_removeBimeraDenovo_seqtab$verbose)
+tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) %>%
+	readr::write_csv(file.path(filtered_path, "seqtab-nochim.csv"))
 
+
+track <- dplyr::tibble(
+	                     name 							= sample.names,
+	                     input 						= filtered_r$reads.in, 
+	                     filtered          = filtered_r$reads.out,
+	                     denoised_forward 	= sapply(dada_r$forward, count_uniques), 
+	                     denoised_reverse 	= sapply(dada_r$reverse, count_uniques), 
+	                     merged 						= sapply(mergers, count_uniques), 
+	                     nonchim 					= rowSums(seqtab.nochim)) %>%
+	readr::write_csv(file.path(filtered_path, "track.csv"))
+
+taxa <- dada2::assignTaxonomy(seqtab.nochim, 
+	refFasta 					= CFG$dada2_assignTaxonomy_nochim$refFasta, 
+	taxLevels 				= CFG$dada2_assignTaxonomy_nochim$taxLevels, 
+	minBoot 					= CFG$dada2_assignTaxonomy_nochim$minBoot, 
+	outputBootstraps 	= CFG$dada2_assignTaxonomy_nochim$outputBootstraps, 
+	verbose 					= CFG$dada2_assignTaxonomy_nochim$verbose, 
+	multithread 			= CFG$dada2_assignTaxonomy_nochim$multithread) %>%
+	dplyr::as_tibble() %>%
+	read::write_csv(file.path(filtered_path, "taxa.csv"))
 
 
 } #main
