@@ -43,7 +43,6 @@ primer_hits <- function(primer, fn) {
 }
 
 
-
 #' Compute primer counts
 #'
 #' @param FWD character, forward primer

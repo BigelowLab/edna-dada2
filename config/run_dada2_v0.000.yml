@@ -32,8 +32,8 @@ dada2_dada_filtered:
   multithread: 32.0
 dada2_removeBimeraDenovo_seqtab:
   method: "consensus"
-	multithread: no  
-	verbose: yes
+  multithread: no  
+  verbose: yes
 dada2_assignTaxonomy_nochim:
   refFasta: "/home/btupper/edna/data/examples/pr2_version_4.12.0_18S_dada2.fasta"
   minBoot: 0
