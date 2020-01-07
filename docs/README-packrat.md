@@ -12,6 +12,22 @@ packrat will create a subdirectory of the project, called `packrat`.  Eventually
 now (during development) we can exclude it.
 
 
+
+## packrat updating after upgrading R version
+
+see this [exchange](https://groups.google.com/forum/#!topic/packrat-discuss/JdenhZAo2b8)
+
+Essentially do this...
+
+0) move to packrat repos directory (`~/edna/edna-dada2`) and fire up R,
+
+1) Call 'restore()' to rebuild R packages as needed for the new version of R, and
+
+2) Call 'snapshot()' to record the (updated) version of R.
+
+It takes a while as packages are installed from source.
+
+
 ## packrat initial setup
 
 We found success by initializing an empty packrat, and then manually adding packages.
