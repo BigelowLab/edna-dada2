@@ -1,6 +1,6 @@
 PackratFormat: 1.4
 PackratVersion: 0.5.0
-RVersion: 3.5.1
+RVersion: 3.6.2
 Repos: CRAN=https://cran.mtu.edu, =https://cran.mtu.edu/,
     BioCsoft=https://bioconductor.org/packages/3.8/bioc,
     BioCann=https://bioconductor.org/packages/3.8/data/annotation,
@@ -124,8 +124,8 @@ Requires: BiocGenerics
 
 Package: ShortRead
 Source: Bioconductor
-Version: 1.40.0
-Hash: de0f3c8551f805f40e4b872d474ab88f
+Version: 1.44.1
+Hash: 5e76b1ca40a89f1a0ca5d64a51e5ad15
 Requires: Biobase, BiocGenerics, BiocParallel, Biostrings,
     GenomeInfoDb, GenomicAlignments, GenomicRanges, IRanges, Rsamtools,
     S4Vectors, XVector, hwriter, latticeExtra, zlibbioc
