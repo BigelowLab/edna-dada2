@@ -29,7 +29,7 @@ dada2_filterAndTrim_filtered:
   compress: no
 dada2_dada_filtered:
   name: "dada"
-  multithread: 32.0
+  multithread: 8
 dada2_removeBimeraDenovo_seqtab:
   method: "consensus"
   multithread: no  

@@ -13,7 +13,14 @@ library(ShortRead)
 library(Biostrings)
 library(dada2)
 
-
+#' Count the number of CPUs
+#'
+#' THis is a wrapper around \code{\link[parallel]{detectCores}}
+#'
+#' @return integer
+count_cores <- function(){
+	parallel::detectCores()
+}
 
 #' Given a path - make it if it doesn't exist
 #' 
@@ -21,7 +28,7 @@ library(dada2)
 #' has caused headaches at time.
 #' 
 #' @param path character, the path to check and/or create
-#' @param logical, TRUE if the path exists
+#' @return logical, TRUE if the path exists
 make_path <- function(path){
   ok <- dir.exists(path[1])
   if (!ok){
@@ -337,7 +344,11 @@ count_uniques <- function(x, ...){
 # main processing step
 main <- function(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml"){
 
+
+MAX_CORES <- count_cores() - 1
 CFG <- get_configuration(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml")
+CFG$dada2_dada_filtered$multithread <- pmin(CFG$dada2_dada_filtered$multithread, MAX_CORES)
+
 
 if (nchar(Sys.which(CFG$cutadapt$app)) == 0){
   stop("cutadapt application not found:", CFG$cutadapt$app)
@@ -385,7 +396,7 @@ cut_files <- lapply(filtN_files,
 
 # turn of graphics until we find issue with printing reverse
 cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE, save_graphics = FALSE)
-if (all(ok == 0)) {
+if (all(cut_ok == 0)) {
 	cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse) %>%
 		readr::write_csv(file.path(cut_path, paste0(basename(cut_path), "-primer-counts.csv")))
 } else {
@@ -434,21 +445,21 @@ tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) %>%
 
 track <- dplyr::tibble(
 	                     name 							= sample.names,
-	                     input 						= filtered_r$reads.in, 
-	                     filtered          = filtered_r$reads.out,
+	                     input 						  = filtered_r$reads.in, 
+	                     filtered           = filtered_r$reads.out,
 	                     denoised_forward 	= sapply(dada_r$forward, count_uniques), 
 	                     denoised_reverse 	= sapply(dada_r$reverse, count_uniques), 
 	                     merged 						= sapply(mergers, count_uniques), 
-	                     nonchim 					= rowSums(seqtab.nochim)) %>%
+	                     nonchim 					  = rowSums(seqtab.nochim)) %>%
 	readr::write_csv(file.path(filtered_path, "track.csv"))
 
 taxa <- dada2::assignTaxonomy(seqtab.nochim, 
-	refFasta 					= CFG$dada2_assignTaxonomy_nochim$refFasta, 
-	taxLevels 				= CFG$dada2_assignTaxonomy_nochim$taxLevels, 
-	minBoot 					= CFG$dada2_assignTaxonomy_nochim$minBoot, 
-	outputBootstraps 	= CFG$dada2_assignTaxonomy_nochim$outputBootstraps, 
-	verbose 					= CFG$dada2_assignTaxonomy_nochim$verbose, 
-	multithread 			= CFG$dada2_assignTaxonomy_nochim$multithread) %>%
+	  refFasta 					= CFG$dada2_assignTaxonomy_nochim$refFasta, 
+	  taxLevels 				= CFG$dada2_assignTaxonomy_nochim$taxLevels, 
+	  minBoot 					= CFG$dada2_assignTaxonomy_nochim$minBoot, 
+	  outputBootstraps 	= CFG$dada2_assignTaxonomy_nochim$outputBootstraps, 
+	  verbose 					= CFG$dada2_assignTaxonomy_nochim$verbose, 
+	  multithread 			= CFG$dada2_assignTaxonomy_nochim$multithread) %>%
 	dplyr::as_tibble() %>%
 	read::write_csv(file.path(filtered_path, "taxa.csv"))
 
