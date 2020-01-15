@@ -363,8 +363,8 @@ main <- function(
 		return(RETURN + 1)
 	}
 	
-	flog.logger(threshold = toupper(CFG$verbose[1])), 
-							appender = appender.tee(file.path(CFG$output_path, "log")))
+	flog.threshold(toupper(CFG$verbose[1]))
+	flog.appender(appender.tee(file.path(CFG$output_path, "log")) )
 	flog.info("starting run: %s", cfg)
 	
 
