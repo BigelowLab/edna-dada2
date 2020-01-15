@@ -363,15 +363,14 @@ main <- function(
 		return(RETURN + 1)
 	}
 	
-	if (VERBOSE){
-		threshold <- toupper(CFG$verbose[1])
-		flog.threshold(toupper(threshold))
-		appender.tee(file.path(CFG$output_path, "log"))
-		flog.info("starting run: %s", cfg)
-	}
+	flog.logger(threshold = toupper(CFG$verbose[1])), 
+							appender = appender.tee(file.path(CFG$output_path, "log")))
+	flog.info("starting run: %s", cfg)
+	
+
 	
 	MAX_CORES <- count_cores() - 1
-	CFG$dada2_dada_filtered$multithread <- pmin(CFG$dada2_dada_filtered$multithread, MAX_CORES)
+	CFG$dada2_dada_filtered$multithread <- pmax(CFG$dada2_dada_filtered$multithread, MAX_CORES)
 	flog.info("N cores: %i", MAX_CORES)
 	
 	if (nchar(Sys.which(CFG$cutadapt$app)) == 0){
@@ -430,7 +429,7 @@ main <- function(
 	    file.path(cut_path, basename(f))
 	  })
 	
-	# turn of graphics until we find issue with printing reverse
+	# turn off graphics until we find issue with printing reverse
 	cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE, save_graphics = FALSE)
 	if (all(cut_ok == 0)) {
 		cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse) %>%
