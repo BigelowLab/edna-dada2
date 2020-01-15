@@ -2,10 +2,13 @@
 #
 # required:  email, input_path, output_path
 # all other values have defaults if unspecified
+# verbose can be trace, debug, info (default), warn, error, fatal.  Only messages
+#   at or above severity of verbosity level are output (to console and log)
 version: v0.000
 email: "btupper@bigelow.org"
 input_path: "/home/btupper/edna/data/examples/ben_demo_raw"
 output_path: "/home/btupper/edna/data/examples/ben_demo_raw_results"
+verbose: info
 dada2_filterAndTrim_filtN:
   name: "filtN"
   maxN: 0.0

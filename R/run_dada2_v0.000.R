@@ -341,129 +341,186 @@ count_uniques <- function(x, ...){
 }
 
 
-# main processing step
-main <- function(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml"){
+#' main processing step - tries to operate as a pipeline returning 0 (success) or
+#' failure ( > 0)
+#' 
+#' @param cfg character filename of the YAML configuration file
+#' @return integer where 0 means success
+main <- function(
+	cfg = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml"){
 
 
-MAX_CORES <- count_cores() - 1
-CFG <- get_configuration(x = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.000.yml")
-CFG$dada2_dada_filtered$multithread <- pmin(CFG$dada2_dada_filtered$multithread, MAX_CORES)
+	RETURN <- 0
+	CFG <- get_configuration(cfg)
+	
+	if (!dir.exists(CFG$input_path)){
+		warning("input path not found:", CFG$input_path)
+		return(RETURN + 1)
+	}
+	
+	if (!make_path(CFG$output_path)){
+		warning("output path not created:", CFG$output_path)
+		return(RETURN + 1)
+	}
+	
+	if (VERBOSE){
+		threshold <- toupper(CFG$verbose[1])
+		flog.threshold(toupper(threshold))
+		appender.tee(file.path(CFG$output_path, "log"))
+		flog.info("starting run: %s", cfg)
+	}
+	
+	MAX_CORES <- count_cores() - 1
+	CFG$dada2_dada_filtered$multithread <- pmin(CFG$dada2_dada_filtered$multithread, MAX_CORES)
+	flog.info("N cores: %i", MAX_CORES)
+	
+	if (nchar(Sys.which(CFG$cutadapt$app)) == 0){
+	  flog.error("cutadapt application not found: %s", CFG$cutadapt$app)
+	  return(RETURN + 1)
+	}
+	
+	flog.info("checking for input fastq files")
+	fq_files <- list_fastq(CFG$input_path)
+	sample.names <- sapply(strsplit(basename(fq_files$forward), "_"), `[`, 1)
+	
+	if (length(fq_files[[1]]) <= 0){
+	  flog.error("fastq files not found: %s", CFG$input_path)  
+		return(RETURN + 1)
+	}
+	if (length(fq_files[[1]]) != length(fq_files[[2]])){
+		flog.error("unequal number of fastq files: %i forward and %i reverse", 
+	             length(fq_files$forward), length(fq_files$reverse))
+	 	return(RETURN + 1) 
+	}
+	
+	flog.info("computing all orientations")
+	FWD.orients <- all_orients(CFG$primer$FWD) 
+	REV.orients <- all_orients(CFG$primer$REV) 
+	
+	##### filterAndTrim filtN
+	flog.info("filter and trim of input files")
+	filtN_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtN$name)
+	if (!make_path(filtN_path)) {
+		flog.error("filtN_path not created: %s", filtN_path)
+	 	return(RETURN + 1) 	
+	}
+	
+	filtN_r <- filter_and_trim(fq_files, 
+	                       output_path = filtN_path,
+	                       maxN = CFG$dada2_filterAndTrim_filtN$maxN, 
+	                       multithread = CFG$dada2_filterAndTrim_filtN$multithread, 
+	                       compress = CFG$dada2_filterAndTrim_filtN$compress) %>%
+		readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
+	
+	flog.info("primer counts")
+	filtN_files <- list_fastq(filtN_path)
+	pcounts <- primer_counts(FWD.orients, REV.orients, filtN_files$forward, filtN_files$reverse) %>%
+			readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-primer-counts.csv")))
+	
+	
+	###### cutadapt
+	flog.info("cutadapt")
+	cut_path <- file.path(CFG$output_path, "cutadapt")
+	if (!make_path(cut_path)) {
+		flog.error("cut_path not created:%", cut_path)
+		return(RETURN + 1)
+	}
+	cut_files <- lapply(filtN_files,
+	  function(f){
+	    file.path(cut_path, basename(f))
+	  })
+	
+	# turn of graphics until we find issue with printing reverse
+	cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE, save_graphics = FALSE)
+	if (all(cut_ok == 0)) {
+		cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse) %>%
+			readr::write_csv(file.path(cut_path, paste0(basename(cut_path), "-primer-counts.csv")))
+	} else {
+	  if (VERBOSE) flog.error("one or more cutadapt runs failed: %s", paste(cut_ok, collapse = ", "))
+	  return(RETURN + 1)
+	}
+	
+	##### filterAndTrim filtered
+	flog.info("filter and trim of filtered")
+	filtered_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtered$name)
+	if (!make_path(filtered_path)){ 
+		flog.error("filtered_path not created: %s", filtered_path)
+		return(RETURN + 1)
+	}
+	filtered_r <- filter_and_trim(cut_files, 
+	                       output_path = filtered_path,
+	                       truncQ = CFG$dada2_filterAndTrim_filtered$truncQ,
+	                       truncLen = CFG$dada2_filterAndTrim_filtered$truncLen,
+	                       maxEE = CFG$dada2_filterAndTrim_filtered$maxEE,
+	                       rm.phix= CFG$dada2_filterAndTrim_filtered$rm.phix,
+	                       maxN = CFG$dada2_filterAndTrim_filtered$maxN,  
+	                       compress = CFG$dada2_filterAndTrim_filtered$compress,
+	                       multithread = CFG$dada2_filterAndTrim_filtered$multithread) %>%
+		readr::write_csv(file.path(filtered_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
+	
+	filtered_files <- list_fastq(filtered_path)
+	
+	# learn errors
+	flog.info("Learn errors")
+	errs <- learn_errors(filtered_files,
+		output_path = filtered_path,
+		save_output = TRUE,
+		save_graphics = TRUE)
+	
+	# run dada
+	flog.info("run dada")
+	dada_r <- run_dada(
+		filtered_files, 
+		errs, 
+		multithread = CFG$dada2_dada_filtered$multithread)  # switch to CFG$dada2_dada_filtered
+	
+	# run merge pairs
+	flog.info("merge pairs")
+	mergers <- merge_pairs(filtered_files, dada_r, verbose = TRUE)
+	saveRDS(mergers, file = file.path(filtered_path, "mergers.rds"))
+	
+	flog.info("make sequence table")
+	seqtab <- dada2::makeSequenceTable(mergers) 
+	tseqtab <- dplyr::as_tibble(t(seqtab)) %>%
+		readr::write_csv(file.path(filtered_path, "seqtab.csv"))
+	
+	flog.info("remove Bimera Denovo")
+	seqtab.nochim <- dada2::removeBimeraDenovo(seqtab, 
+		method 			= CFG$dada2_removeBimeraDenovo_seqtab$method, 
+		multithread	= CFG$dada2_removeBimeraDenovo_seqtab$multithread, 
+		verbose     = CFG$dada2_removeBimeraDenovo_seqtab$verbose)
+	tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) %>%
+		readr::write_csv(file.path(filtered_path, "seqtab-nochim.csv"))
+	
+	
+	track <- dplyr::tibble(
+		                     name 							= sample.names,
+		                     input 						  = filtered_r$reads.in, 
+		                     filtered           = filtered_r$reads.out,
+		                     denoised_forward 	= sapply(dada_r$forward, count_uniques), 
+		                     denoised_reverse 	= sapply(dada_r$reverse, count_uniques), 
+		                     merged 						= sapply(mergers, count_uniques), 
+		                     nonchim 					  = rowSums(seqtab.nochim)) %>%
+		readr::write_csv(file.path(filtered_path, "track.csv"))
+	
+	flog.info("assign taxonomy")
+	taxa <- dada2::assignTaxonomy(seqtab.nochim, 
+		  refFasta 					= CFG$dada2_assignTaxonomy_nochim$refFasta, 
+		  taxLevels 				= CFG$dada2_assignTaxonomy_nochim$taxLevels, 
+		  minBoot 					= CFG$dada2_assignTaxonomy_nochim$minBoot, 
+		  outputBootstraps 	= CFG$dada2_assignTaxonomy_nochim$outputBootstraps, 
+		  verbose 					= CFG$dada2_assignTaxonomy_nochim$verbose, 
+		  multithread 			= CFG$dada2_assignTaxonomy_nochim$multithread) %>%
+		dplyr::as_tibble() %>%
+		read::write_csv(file.path(filtered_path, "taxa.csv"))
 
-
-if (nchar(Sys.which(CFG$cutadapt$app)) == 0){
-  stop("cutadapt application not found:", CFG$cutadapt$app)
-}
-
-if (!dir.exists(CFG$input_path)) stop("input path not found:", CFG$input_path)
-if (!make_path(CFG$output_path)) stop("output path not created:", CFG$output_path)
-
-fq_files <- list_fastq(CFG$input_path)
-sample.names <- sapply(strsplit(basename(fq_files$forward), "_"), `[`, 1)
-
-if (length(fq_files[[1]]) <= 0)
-    stop("fastq files not found:", CFG$input_path )
-if (length(fq_files[[1]]) != length(fq_files[[2]]))
-    stop(sprintf("unequal number of fastq files: %i forward and %i reverse", 
-                 length(fq_files$forward), length(fq_files$reverse)))
-
-
-FWD.orients <- all_orients(CFG$primer$FWD) 
-REV.orients <- all_orients(CFG$primer$REV) 
-
-##### filterAndTrim filtN
-filtN_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtN$name)
-if (!make_path(filtN_path)) stop("filtN_path not created:", filtN_path)
-filtN_r <- filter_and_trim(fq_files, 
-                       output_path = filtN_path,
-                       maxN = CFG$dada2_filterAndTrim_filtN$maxN, 
-                       multithread = CFG$dada2_filterAndTrim_filtN$multithread, 
-                       compress = CFG$dada2_filterAndTrim_filtN$compress) %>%
-	readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
-
-filtN_files <- list_fastq(filtN_path)
-pcounts <- primer_counts(FWD.orients, REV.orients, filtN_files$forward, filtN_files$reverse) %>%
-		readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-primer-counts.csv")))
-
-
-###### cutadapt
-cut_path <- file.path(CFG$output_path, "cutadapt")
-if (!make_path(cut_path)) stop("cut_path not created:", cut_path)
-
-cut_files <- lapply(filtN_files,
-  function(f){
-    file.path(cut_path, basename(f))
-  })
-
-# turn of graphics until we find issue with printing reverse
-cut_ok <- run_cutadapt(cut_files, filtN_files, CFG, save_output = TRUE, save_graphics = FALSE)
-if (all(cut_ok == 0)) {
-	cut_pcounts <- primer_counts(FWD.orients, REV.orients, cut_files$forward, cut_files$reverse) %>%
-		readr::write_csv(file.path(cut_path, paste0(basename(cut_path), "-primer-counts.csv")))
-} else {
-	stop("one or more cutadapt runs failed: ", paste(cut_ok, collapse = ", "))
-}
-
-##### filterAndTrim filtered
-filtered_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtered$name)
-if (!make_path(filtered_path)) stop("filtered_path not created:", filtered_path)
-filtered_r <- filter_and_trim(cut_files, 
-                       output_path = filtered_path,
-                       truncQ = CFG$dada2_filterAndTrim_filtered$truncQ,
-                       truncLen = CFG$dada2_filterAndTrim_filtered$truncLen,
-                       maxEE = CFG$dada2_filterAndTrim_filtered$maxEE,
-                       rm.phix= CFG$dada2_filterAndTrim_filtered$rm.phix,
-                       maxN = CFG$dada2_filterAndTrim_filtered$maxN,  
-                       compress = CFG$dada2_filterAndTrim_filtered$compress,
-                       multithread = CFG$dada2_filterAndTrim_filtered$multithread) %>%
-	readr::write_csv(file.path(filtered_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
-
-filtered_files <- list_fastq(filtered_path)
-
-errs <- learn_errors(filtered_files,
-	output_path = filtered_path,
-	save_output = TRUE,
-	save_graphics = TRUE)
-
-dada_r <- run_dada(
-	filtered_files, 
-	errs, 
-	multithread = CFG$dada2_dada_filtered$multithread)  # switch to CFG$dada2_dada_filtered
-
-
-mergers <- merge_pairs(filtered_files, dada_r, verbose = TRUE)
-saveRDS(mergers, file = file.path(filtered_path, "mergers.rds"))
-seqtab <- dada2::makeSequenceTable(mergers) 
-tseqtab <- dplyr::as_tibble(t(seqtab)) %>%
-	readr::write_csv(file.path(filtered_path, "seqtab.csv"))
-seqtab.nochim <- dada2::removeBimeraDenovo(seqtab, 
-	method 			= CFG$dada2_removeBimeraDenovo_seqtab$method, 
-	multithread	= CFG$dada2_removeBimeraDenovo_seqtab$multithread, 
-	verbose     = CFG$dada2_removeBimeraDenovo_seqtab$verbose)
-tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) %>%
-	readr::write_csv(file.path(filtered_path, "seqtab-nochim.csv"))
-
-
-track <- dplyr::tibble(
-	                     name 							= sample.names,
-	                     input 						  = filtered_r$reads.in, 
-	                     filtered           = filtered_r$reads.out,
-	                     denoised_forward 	= sapply(dada_r$forward, count_uniques), 
-	                     denoised_reverse 	= sapply(dada_r$reverse, count_uniques), 
-	                     merged 						= sapply(mergers, count_uniques), 
-	                     nonchim 					  = rowSums(seqtab.nochim)) %>%
-	readr::write_csv(file.path(filtered_path, "track.csv"))
-
-taxa <- dada2::assignTaxonomy(seqtab.nochim, 
-	  refFasta 					= CFG$dada2_assignTaxonomy_nochim$refFasta, 
-	  taxLevels 				= CFG$dada2_assignTaxonomy_nochim$taxLevels, 
-	  minBoot 					= CFG$dada2_assignTaxonomy_nochim$minBoot, 
-	  outputBootstraps 	= CFG$dada2_assignTaxonomy_nochim$outputBootstraps, 
-	  verbose 					= CFG$dada2_assignTaxonomy_nochim$verbose, 
-	  multithread 			= CFG$dada2_assignTaxonomy_nochim$multithread) %>%
-	dplyr::as_tibble() %>%
-	read::write_csv(file.path(filtered_path, "taxa.csv"))
-
-
+	return(RETURN)
 } #main
 
 
+# we only run is run as a script - not if interactive
+if (!interactive()){
+	cfgfile <- commandArgs(trailingOnly = TRUE)[1]
+	ok <- main(cfgfile)
+	quit(save = "no", status = ok)
+}
