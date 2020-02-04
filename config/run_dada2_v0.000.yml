@@ -32,7 +32,7 @@ dada2_filterAndTrim_filtered:
   compress: no
 dada2_dada_filtered:
   name: "dada"
-  multithread: 8
+  multithread: yes
 dada2_removeBimeraDenovo_seqtab:
   method: "consensus"
   multithread: no  
@@ -42,7 +42,7 @@ dada2_assignTaxonomy_nochim:
   minBoot: 0
   outputBootstraps: yes
   verbose: yes
-  multithread: no
+  multithread: yes
   taxLevels:
   - "Kingdom"
   - "Supergroup"
