@@ -393,7 +393,7 @@ main <- function(
   
 
   if (is.numeric(CFG$dada2_dada_filtered$multithread)){
-    MAX_CORES <- count_cores() - 1
+    MAX_CORES <- count_cores()
 	  CFG$dada2_dada_filtered$multithread <- pmax(CFG$dada2_dada_filtered$multithread, MAX_CORES)
   	flog.info("N cores: %i", MAX_CORES)
   }
@@ -487,6 +487,7 @@ main <- function(
   # learn errors
   flog.info("Learn errors")
   errs <- learn_errors(filtered_files,
+    multithread = CFG$dada2_learnErrors$multithread,
     output_path = filtered_path,
     save_output = TRUE,
     save_graphics = TRUE)

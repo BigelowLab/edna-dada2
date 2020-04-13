@@ -12,8 +12,11 @@ verbose: info
 dada2_filterAndTrim_filtN:
   name: "filtN"
   maxN: 0.0
-  multithread: no
+  multithread: 24
   compress: no
+dada2_learnErrors:
+  name: "learnErrors"
+  multithread: 24
 cutadapt:
   app: "/mnt/modules/bin/dada2/1.12/bin/cutadapt"
   more_args: "--minimum-length 25.0 -n 2.0"
@@ -32,7 +35,7 @@ dada2_filterAndTrim_filtered:
   compress: no
 dada2_dada_filtered:
   name: "dada"
-  multithread: yes
+  multithread: 24
 dada2_removeBimeraDenovo_seqtab:
   method: "consensus"
   multithread: no  
@@ -42,7 +45,7 @@ dada2_assignTaxonomy_nochim:
   minBoot: 0
   outputBootstraps: yes
   verbose: yes
-  multithread: yes
+  multithread: 24
   taxLevels:
   - "Kingdom"
   - "Supergroup"
