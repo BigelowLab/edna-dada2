@@ -1,0 +1,435 @@
+{
+  "R": {
+    "Version": "3.6.2",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cran.mtu.edu"
+      },
+      {
+        "Name": "",
+        "URL": "https://cran.mtu.edu"
+      },
+      {
+        "Name": "BioCsoft",
+        "URL": "https://bioconductor.org/packages/3.8/bioc"
+      },
+      {
+        "Name": "BioCann",
+        "URL": "https://bioconductor.org/packages/3.8/data/annotation"
+      },
+      {
+        "Name": "BioCexp",
+        "URL": "https://bioconductor.org/packages/3.8/data/experiment"
+      },
+      {
+        "Name": "BioCworkflows",
+        "URL": "https://bioconductor.org/packages/3.8/workflows"
+      },
+      {
+        "Name": "CRAN",
+        "URL": "https://cran.mtu.edu"
+      }
+    ]
+  },
+  "Packages": {
+    "BH": {
+      "Package": "BH",
+      "Version": "1.69.0-1",
+      "Source": "CRAN"
+    },
+    "Biobase": {
+      "Package": "Biobase",
+      "Version": "2.42.0",
+      "Source": "Bioconductor"
+    },
+    "BiocGenerics": {
+      "Package": "BiocGenerics",
+      "Version": "0.28.0",
+      "Source": "Bioconductor"
+    },
+    "BiocManager": {
+      "Package": "BiocManager",
+      "Version": "1.30.10",
+      "Source": "CRAN"
+    },
+    "BiocParallel": {
+      "Package": "BiocParallel",
+      "Version": "1.16.6",
+      "Source": "Bioconductor"
+    },
+    "Biostrings": {
+      "Package": "Biostrings",
+      "Version": "2.50.2",
+      "Source": "Bioconductor"
+    },
+    "DelayedArray": {
+      "Package": "DelayedArray",
+      "Version": "0.8.0",
+      "Source": "Bioconductor"
+    },
+    "GenomeInfoDb": {
+      "Package": "GenomeInfoDb",
+      "Version": "1.18.2",
+      "Source": "Bioconductor"
+    },
+    "GenomeInfoDbData": {
+      "Package": "GenomeInfoDbData",
+      "Version": "1.2.0",
+      "Source": "Bioconductor"
+    },
+    "GenomicAlignments": {
+      "Package": "GenomicAlignments",
+      "Version": "1.18.1",
+      "Source": "Bioconductor"
+    },
+    "GenomicRanges": {
+      "Package": "GenomicRanges",
+      "Version": "1.34.0",
+      "Source": "Bioconductor"
+    },
+    "IRanges": {
+      "Package": "IRanges",
+      "Version": "2.16.0",
+      "Source": "Bioconductor"
+    },
+    "R6": {
+      "Package": "R6",
+      "Version": "2.4.1",
+      "Source": "CRAN"
+    },
+    "RColorBrewer": {
+      "Package": "RColorBrewer",
+      "Version": "1.1-2",
+      "Source": "CRAN"
+    },
+    "RCurl": {
+      "Package": "RCurl",
+      "Version": "1.95-4.12",
+      "Source": "CRAN"
+    },
+    "Rcpp": {
+      "Package": "Rcpp",
+      "Version": "1.0.3",
+      "Source": "CRAN"
+    },
+    "RcppParallel": {
+      "Package": "RcppParallel",
+      "Version": "4.4.4",
+      "Source": "CRAN"
+    },
+    "RcppTOML": {
+      "Package": "RcppTOML",
+      "Version": "0.1.6",
+      "Source": "CRAN"
+    },
+    "Rsamtools": {
+      "Package": "Rsamtools",
+      "Version": "1.34.1",
+      "Source": "Bioconductor"
+    },
+    "S4Vectors": {
+      "Package": "S4Vectors",
+      "Version": "0.20.1",
+      "Source": "Bioconductor"
+    },
+    "ShortRead": {
+      "Package": "ShortRead",
+      "Version": "1.44.1",
+      "Source": "Bioconductor"
+    },
+    "SummarizedExperiment": {
+      "Package": "SummarizedExperiment",
+      "Version": "1.12.0",
+      "Source": "Bioconductor"
+    },
+    "XVector": {
+      "Package": "XVector",
+      "Version": "0.22.0",
+      "Source": "Bioconductor"
+    },
+    "assertthat": {
+      "Package": "assertthat",
+      "Version": "0.2.1",
+      "Source": "CRAN"
+    },
+    "backports": {
+      "Package": "backports",
+      "Version": "1.1.5",
+      "Source": "CRAN"
+    },
+    "bitops": {
+      "Package": "bitops",
+      "Version": "1.0-6",
+      "Source": "CRAN"
+    },
+    "cli": {
+      "Package": "cli",
+      "Version": "2.0.0",
+      "Source": "CRAN"
+    },
+    "clipr": {
+      "Package": "clipr",
+      "Version": "0.7.0",
+      "Source": "CRAN"
+    },
+    "colorspace": {
+      "Package": "colorspace",
+      "Version": "1.4-1",
+      "Source": "CRAN"
+    },
+    "configr": {
+      "Package": "configr",
+      "Version": "0.3.4",
+      "Source": "CRAN"
+    },
+    "crayon": {
+      "Package": "crayon",
+      "Version": "1.3.4",
+      "Source": "CRAN"
+    },
+    "dada2": {
+      "Package": "dada2",
+      "Version": "1.10.1",
+      "Source": "Bioconductor"
+    },
+    "data.table": {
+      "Package": "data.table",
+      "Version": "1.12.8",
+      "Source": "CRAN"
+    },
+    "digest": {
+      "Package": "digest",
+      "Version": "0.6.23",
+      "Source": "CRAN"
+    },
+    "dplyr": {
+      "Package": "dplyr",
+      "Version": "0.8.3",
+      "Source": "CRAN"
+    },
+    "ellipsis": {
+      "Package": "ellipsis",
+      "Version": "0.3.0",
+      "Source": "CRAN"
+    },
+    "fansi": {
+      "Package": "fansi",
+      "Version": "0.4.0",
+      "Source": "CRAN"
+    },
+    "farver": {
+      "Package": "farver",
+      "Version": "2.0.1",
+      "Source": "CRAN"
+    },
+    "formatR": {
+      "Package": "formatR",
+      "Version": "1.7",
+      "Source": "CRAN"
+    },
+    "futile.logger": {
+      "Package": "futile.logger",
+      "Version": "1.4.3",
+      "Source": "CRAN"
+    },
+    "futile.options": {
+      "Package": "futile.options",
+      "Version": "1.0.1",
+      "Source": "CRAN"
+    },
+    "ggplot2": {
+      "Package": "ggplot2",
+      "Version": "3.2.1",
+      "Source": "CRAN"
+    },
+    "glue": {
+      "Package": "glue",
+      "Version": "1.3.1",
+      "Source": "CRAN"
+    },
+    "gtable": {
+      "Package": "gtable",
+      "Version": "0.3.0",
+      "Source": "CRAN"
+    },
+    "hms": {
+      "Package": "hms",
+      "Version": "0.5.2",
+      "Source": "CRAN"
+    },
+    "hwriter": {
+      "Package": "hwriter",
+      "Version": "1.3.2",
+      "Source": "CRAN"
+    },
+    "ini": {
+      "Package": "ini",
+      "Version": "0.3.1",
+      "Source": "CRAN"
+    },
+    "jsonlite": {
+      "Package": "jsonlite",
+      "Version": "1.6",
+      "Source": "CRAN"
+    },
+    "labeling": {
+      "Package": "labeling",
+      "Version": "0.3",
+      "Source": "CRAN"
+    },
+    "lambda.r": {
+      "Package": "lambda.r",
+      "Version": "1.2.4",
+      "Source": "CRAN"
+    },
+    "latticeExtra": {
+      "Package": "latticeExtra",
+      "Version": "0.6-28",
+      "Source": "CRAN"
+    },
+    "lazyeval": {
+      "Package": "lazyeval",
+      "Version": "0.2.2",
+      "Source": "CRAN"
+    },
+    "lifecycle": {
+      "Package": "lifecycle",
+      "Version": "0.1.0",
+      "Source": "CRAN"
+    },
+    "magrittr": {
+      "Package": "magrittr",
+      "Version": "1.5",
+      "Source": "CRAN"
+    },
+    "matrixStats": {
+      "Package": "matrixStats",
+      "Version": "0.55.0",
+      "Source": "CRAN"
+    },
+    "munsell": {
+      "Package": "munsell",
+      "Version": "0.5.0",
+      "Source": "CRAN"
+    },
+    "packrat": {
+      "Package": "packrat",
+      "Version": "0.5.0",
+      "Source": "CRAN"
+    },
+    "patchwork": {
+      "Package": "patchwork",
+      "Version": "1.0.0",
+      "Source": "CRAN"
+    },
+    "pillar": {
+      "Package": "pillar",
+      "Version": "1.4.2",
+      "Source": "CRAN"
+    },
+    "pkgconfig": {
+      "Package": "pkgconfig",
+      "Version": "2.0.3",
+      "Source": "CRAN"
+    },
+    "plogr": {
+      "Package": "plogr",
+      "Version": "0.2.0",
+      "Source": "CRAN"
+    },
+    "plyr": {
+      "Package": "plyr",
+      "Version": "1.8.5",
+      "Source": "CRAN"
+    },
+    "purrr": {
+      "Package": "purrr",
+      "Version": "0.3.3",
+      "Source": "CRAN"
+    },
+    "readr": {
+      "Package": "readr",
+      "Version": "1.3.1",
+      "Source": "CRAN"
+    },
+    "reshape2": {
+      "Package": "reshape2",
+      "Version": "1.4.3",
+      "Source": "CRAN"
+    },
+    "rlang": {
+      "Package": "rlang",
+      "Version": "0.4.2",
+      "Source": "CRAN"
+    },
+    "scales": {
+      "Package": "scales",
+      "Version": "1.1.0",
+      "Source": "CRAN"
+    },
+    "snow": {
+      "Package": "snow",
+      "Version": "0.4-3",
+      "Source": "CRAN"
+    },
+    "stringi": {
+      "Package": "stringi",
+      "Version": "1.4.3",
+      "Source": "CRAN"
+    },
+    "stringr": {
+      "Package": "stringr",
+      "Version": "1.4.0",
+      "Source": "CRAN"
+    },
+    "tibble": {
+      "Package": "tibble",
+      "Version": "2.1.3",
+      "Source": "CRAN"
+    },
+    "tidyselect": {
+      "Package": "tidyselect",
+      "Version": "0.2.5",
+      "Source": "CRAN"
+    },
+    "utf8": {
+      "Package": "utf8",
+      "Version": "1.1.4",
+      "Source": "CRAN"
+    },
+    "vctrs": {
+      "Package": "vctrs",
+      "Version": "0.2.0",
+      "Source": "CRAN"
+    },
+    "viridisLite": {
+      "Package": "viridisLite",
+      "Version": "0.3.0",
+      "Source": "CRAN"
+    },
+    "withr": {
+      "Package": "withr",
+      "Version": "2.1.2",
+      "Source": "CRAN"
+    },
+    "yaml": {
+      "Package": "yaml",
+      "Version": "2.2.0",
+      "Source": "CRAN"
+    },
+    "zeallot": {
+      "Package": "zeallot",
+      "Version": "0.1.0",
+      "Source": "CRAN"
+    },
+    "zlibbioc": {
+      "Package": "zlibbioc",
+      "Version": "1.28.0",
+      "Source": "Bioconductor"
+    }
+  },
+  "Bioconductor": {
+    "Version": "3.10"
+  }
+}
