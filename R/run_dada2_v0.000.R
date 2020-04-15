@@ -37,6 +37,34 @@ library(ShortRead)
 library(Biostrings)
 library(dada2)
 
+
+#' Provide an R session audit
+#'
+#' @param filename the name of the file to dump to or "" to print to console
+audit <- function(filename = "", pbs_jobid = "not known"){
+	cat("Audit date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S", usetz = TRUE), "\n",
+		file = filename)
+	cat("PBS_JOBID:", pbs_jobid, "\n", file = filename, append = TRUE)
+	cat("R version:", R.version.string, "\n",
+		file = filename, append = TRUE)
+	cat("libPaths():\n",
+		file = filename, append = TRUE)
+	for (lp in .libPaths()) cat("    ", lp, "\n",
+															file = filename, append = TRUE)
+	x <- as.data.frame(installed.packages(), stringsAsFactors = FALSE)
+	x <- x[,c("Package", "Version",  "LibPath")]
+	cat("installed.packages():\n",
+			file = filename, append = TRUE)
+	if (nzchar(filename)){
+		conn <- file(filename, open = 'at')
+		write.csv(x, file = conn, row.names = FALSE)
+		close(conn)
+	} else {
+		print(x, row.names = FALSE)
+	}
+	invisible(NULL)
+}
+
 #' Count the number of CPUs
 #'
 #' THis is a wrapper around \code{\link[parallel]{detectCores}}
@@ -365,6 +393,21 @@ count_uniques <- function(x, ...){
 }
 
 
+#' Plot quality profiles for one or more FASTQs
+#'
+#' @param x character vector of fastq filenames 
+#' @param ofile character, the name of the PDF file to generate of NA
+#' @param ... further arguments for \code{\link[dada2{plotQualityProfile}]}
+plot_qualityProfile <- function(x, 
+	ofile = c(NA, "qualityProfile.pdf")[1],
+	...){
+	if (!is.na(ofile)) pdf(ofile)
+	ok <- dada2::plotQualityProfile(x, ...)
+	if (!is.na(ofile)) dev.off()
+	ok
+}
+
+
 #' main processing step - tries to operate as a pipeline returning 0 (success) or
 #' failure ( > 0)
 #' 
@@ -387,11 +430,17 @@ main <- function(
     return(RETURN + 1)
   }
   
+  PBS_JOBID <- Sys.getenv("PBS_JOBID")
+  if (nchar(PBS_JOBID) == 0) PBS_JOBID <- "not in PBS queue"
+  ok <- audit(CFG$output_path, "audit.txt"), pbs_jobid = PBS_JOBID)
   flog.threshold(toupper(CFG$verbose[1]))
   flog.appender(appender.tee(file.path(CFG$output_path, "log")) )
   flog.info("starting run: %s", cfg)
+  flog.info("PBS_JOBID: %s", PBS_JOBID)
+  flog.info("VERSION: %s", CFG$version)
+  flog.info("INPUT PATH: %s", CFG$input_path)
+  flog.info("OUTPUT PATH: %s", CFG$output_path)
   
-
   if (is.numeric(CFG$multithread)){
     MAX_CORES <- count_cores()
 	  #CFG$multithread <- pmax(CFG$multithread, MAX_CORES)
@@ -416,6 +465,10 @@ main <- function(
                length(fq_files$forward), length(fq_files$reverse))
     return(RETURN + 1) 
   }
+  
+  flog.info("plotting quality profiles")
+  
+  
   
   flog.info("computing all orientations")
   FWD.orients <- all_orients(CFG$primer$FWD) 

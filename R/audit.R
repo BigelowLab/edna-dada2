@@ -1,13 +1,13 @@
 #' Provide an R session audit
 #'
 #' @param filename the name of the file to dump to or "" to print to console
-audit <- function(filename = ""){
+audit <- function(filename = "", pbs_jobid = "not known"){
 	cat("Audit date:", format(Sys.time(), "%Y-%m-%d %H:%M:%S", usetz = TRUE), "\n",
 		file = filename)
-	cat("R version:", R.version.string, "\n",
-		file = filename, append = TRUE)
-	cat("libPaths():\n",
-		file = filename, append = TRUE)
+	cat("PBS_JOBID:", pbs_jobid, "\n", file = filename, append = TRUE)
+	cat("R instance:", Sys.which("R"), "\n", file = filename, append = TRUE)
+	cat("R version:", R.version.string, "\n", file = filename, append = TRUE)
+	cat("libPaths():\n", file = filename, append = TRUE)
 	for (lp in .libPaths()) cat("    ", lp, "\n",
 															file = filename, append = TRUE)
 	x <- as.data.frame(installed.packages(), stringsAsFactors = FALSE)
