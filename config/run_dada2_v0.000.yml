@@ -11,7 +11,7 @@ output_path: "/home/btupper/edna/data/examples/ben_demo_raw_results"
 verbose: info
 multithread: 24
 dada2_plotQualityProfiles:
-  n: 2
+  nplots: 2
 dada2_filterAndTrim_filtN:
   name: "filtN"
   maxN: 0.0

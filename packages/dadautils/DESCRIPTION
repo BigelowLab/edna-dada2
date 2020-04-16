@@ -1,0 +1,26 @@
+Package: dadautils
+Type: Package
+Title: dadautils: extra utilities for the dada2 package
+Version: 0.1
+Author: Ben Tupper <btupper@bigelow.org>
+Maintainer: Ben Tupper <btupper@bigelow.org>
+Description: Provides added tools for working with the dada2 package in the eDNA project.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 3.0)
+Imports:
+  parallel,
+  utils,
+  grDevices,
+	rlang,
+  dplyr,
+	readr,
+	configr,
+	dada2,
+	Biostrings,
+	ShortRead,
+	IRanges,
+	patchwork,
+	ggplot2
+RoxygenNote: 7.1.0
