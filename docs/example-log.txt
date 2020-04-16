@@ -1,0 +1,8 @@
+INFO [2020-04-15 12:48:42] starting run: /home/btupper/edna/edna-dada2/config/run_dada2_v0.001.yml
+INFO [2020-04-15 12:48:42] PBS_JOBID: not in PBS queue
+INFO [2020-04-15 12:48:42] VERSION: v0.001
+INFO [2020-04-15 12:48:42] INPUT PATH: /home/btupper/edna/data/examples/SK18S
+INFO [2020-04-15 12:48:42] OUTPUT PATH: /home/btupper/edna/data/examples/SK18S_results
+INFO [2020-04-15 12:48:42] modifying multithread to devel: 4 --> 4
+INFO [2020-04-15 12:48:42] Using 4 (of 4) cores
+INFO [2020-04-15 12:48:42] checking for input fastq files
