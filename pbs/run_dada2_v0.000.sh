@@ -15,4 +15,4 @@ module use /mod/bigelow
 module load dada2
 path=/home/btupper/edna/edna-dada2
 opts="--no-save --no-restore --no-site-file --no-environ"
-Rscript ${opts} ${path}/R/run_dada2_v0.000.R ${path}/config/run_dada2_v0.000.yml
+Rscript ${opts} ${path}/Rscript/run_dada2_v0.000.R ${path}/config/run_dada2_v0.000.yml

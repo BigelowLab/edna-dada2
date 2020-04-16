@@ -432,7 +432,7 @@ main <- function(
   
   PBS_JOBID <- Sys.getenv("PBS_JOBID")
   if (nchar(PBS_JOBID) == 0) PBS_JOBID <- "not in PBS queue"
-  ok <- audit(CFG$output_path, "audit.txt"), pbs_jobid = PBS_JOBID)
+  ok <- audit(file.path(CFG$output_path, "audit.txt"), pbs_jobid = PBS_JOBID)
   flog.threshold(toupper(CFG$verbose[1]))
   flog.appender(appender.tee(file.path(CFG$output_path, "log")) )
   flog.info("starting run: %s", cfg)

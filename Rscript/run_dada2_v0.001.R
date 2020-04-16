@@ -324,11 +324,17 @@ learn_errors <- function(filelist, ...,
   save_graphics = FALSE
   ){
 
+  if (interactive()){
+  	sink(file.path(output_path, "learn_errors.out"))
+  }
   errs <- list(
       forward =  dada2::learnErrors(filelist$forward, ...),
       reverse =  dada2::learnErrors(filelist$reverse, ...)
     )
-    
+  if (interactive()){
+  	sink(NULL)
+  }    
+  
   if (save_output){
     saveRDS(errs, file = file.path(output_path, "learn_errors.rds"))
   }
@@ -428,11 +434,10 @@ main <- function(cfg = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.001.ym
   
   PBS_JOBID <- Sys.getenv("PBS_JOBID")
   if (nchar(PBS_JOBID) == 0) PBS_JOBID <- "not in PBS queue"
-  ok <- audit(CFG$output_path, "audit.txt"), pbs_jobid = PBS_JOBID)
+  ok <- audit(file.path(CFG$output_path, "audit.txt"), pbs_jobid = PBS_JOBID)
   
   ok <- flog.threshold(toupper(CFG$verbose[1]))
   ok <- flog.appender(appender.tee(file.path(CFG$output_path, "log")) )
-  flog.info("starting run: %s", cfg)
   flog.info("starting run: %s", cfg)
   flog.info("PBS_JOBID: %s", PBS_JOBID)
   flog.info("VERSION: %s", CFG$version)
@@ -441,7 +446,7 @@ main <- function(cfg = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.001.ym
 
   if (is.numeric(CFG$multithread)){
     MAX_CORES <- count_cores()
-	  if (interactive() && (MAX_CORES > CFG$multithread)) {
+	  if (interactive() && (MAX_CORES < CFG$multithread)) {
 	  	CFG$multithread <- MAX_CORES
 	  	flog.info("modifying multithread to devel: %i --> %i", CFG$multithread, MAX_CORES)
 	  }
@@ -471,6 +476,7 @@ main <- function(cfg = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.001.ym
   ofile <- file.path(CFG$output_path, 
   	sprintf("qualityProfiles_%i.pdf", CFG$dada2_plotQualityProfile$nplots))
   ix <- seq_len(CFG$dada2_plotQualityProfile$nplots)
+  pdf(ofile)
   plot_qualityProfile(fq_files$forward[ix])
   plot_qualityProfile(fq_files$reverse[ix])
   dev.off()
@@ -492,8 +498,8 @@ main <- function(cfg = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.001.ym
                          multithread = CFG$multithread, 
                          maxN        = CFG$dada2_filterAndTrim_filtN$maxN, 
                          maxEE       = CFG$dada2_filterAndTrim_filtN$maxEE, 
-                         truncLen    = CFG$CFG$dada2_filterAndTrim_filtN$truncLen,
-                         truncQ      = CFG$CFG$dada2_filterAndTrim_filtN$truncQ,
+                         truncLen    = CFG$dada2_filterAndTrim_filtN$truncLen,
+                         truncQ      = CFG$dada2_filterAndTrim_filtN$truncQ,
                          rm.phix     = CFG$dada2_filterAndTrim_filtN$rm.phix,
                          compress    = CFG$dada2_filterAndTrim_filtN$compress) %>%
     readr::write_csv(file.path(filtN_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
@@ -502,8 +508,10 @@ main <- function(cfg = "/home/btupper/edna/edna-dada2/config/run_dada2_v0.001.ym
   filtered_files <- list_fastq(filtN_path)
   
   flog.info("Learn errors")
+  verbose <- ifelse(interactive(), 2, FALSE)
   errs <- learn_errors(filtered_files,
     multithread = CFG$multithread,
+    verbose = verbose,
     output_path = CFG$output_path,
     save_output = TRUE,
     save_graphics = TRUE)

@@ -15,4 +15,4 @@ module use /mod/bigelow
 module load dada2
 path=/home/btupper/edna/edna-dada2
 cd ${path}
-Rscript ${path}/testme.Rscript
+Rscript ${path}/Rscript/testme.Rscript
