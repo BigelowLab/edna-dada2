@@ -27,7 +27,6 @@
 #' place the allowable patterns in the config file, but I think it would be better to simply
 #' make the list_fastq() function more robust.
  
-sink("/home/btupper/edna/data/examples/dada2/MiSeq_SOP_results/sink.txt")
 library(dplyr)
 library(readr)
 library(configr)
@@ -68,20 +67,21 @@ main <- function(
   ok <- flog.threshold(getFromNamespace(toupper(CFG$verbose[1]), pos = "package:futile.logger"))
   ok <- flog.appender(appender.tee(file.path(CFG$output_path, "log")) )
   flog.info("starting run: %s", cfg)
+  flog.info("System PID: %s", Sys.getpid())
   flog.info("PBS_JOBID: %s", PBS_JOBID)
   flog.info("VERSION: %s", CFG$version)
   flog.info("INPUT PATH: %s", CFG$input_path)
   flog.info("OUTPUT PATH: %s", CFG$output_path)
   
-  if (is.numeric(CFG$multithread)){
-    MAX_CORES <- dadautils::count_cores()
-    if (interactive() && MAX_CORES < CFG$multithread){
-      flog.warn("fewer cores available (%i) than requested (%i), adjusting request",
-          MAX_CORES, CFG$multithread)
-      CFG$multithread <- MAX_CORES
-    }
-    flog.info("Using %i (of %i) cores", CFG$multithread, MAX_CORES)
-  }
+  #if (is.numeric(CFG$multithread)){
+    #MAX_CORES <- dadautils::count_cores()
+    #if (interactive() && MAX_CORES < CFG$multithread){
+    #  flog.warn("fewer cores available (%i) than requested (%i), adjusting request",
+    #      MAX_CORES, CFG$multithread)
+    #  CFG$multithread <- MAX_CORES
+    #}
+    #flog.info("Using %i (of %i) cores", CFG$multithread, MAX_CORES)
+  #}
   
   if (("cutadapt" %in% names(CFG)) && (nchar(Sys.which(CFG$cutadapt$app)) == 0)){
     flog.error("cutadapt application not found: %s", CFG$cutadapt$app)
@@ -195,6 +195,4 @@ main <- function(
 # we only run is run as a script - not if interactive
 if (!interactive()){
   cfgfile <- commandArgs(trailingOnly = TRUE)[1]
-  ok <- main(cfgfile)
-  quit(save = "no", status = ok)
-}
+  ok
