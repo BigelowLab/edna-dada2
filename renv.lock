@@ -285,9 +285,9 @@
       "RemoteUsername": "BigelowLab",
       "RemoteRepo": "dadautils",
       "RemoteRef": "master",
-      "RemoteSha": "9fe47cffe0648f01160b365f7c025d3a66d93d89",
+      "RemoteSha": "09615a72c0fd17ebb6fa4e23764f4c799e8bdd20",
       "RemoteHost": "api.github.com",
-      "Hash": "78fae78307a91a9735cb7f3e3e2ac9f6"
+      "Hash": "463cd9e6ca03e0233224c5b7c3a7cf37"
     },
     "desc": {
       "Package": "desc",
