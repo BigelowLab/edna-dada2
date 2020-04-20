@@ -24,3 +24,21 @@ audit <- function(filename = "", pbs_jobid = "not known"){
 	invisible(NULL)
 }
 
+
+if (!interactive()){
+
+	path <- commandArgs(trailingOnly = TRUE)[1]
+	if (length(path) == 0 || nchar(path[1]) == 0 ) {
+		path <- "/home/btupper/edna/data/audits"
+	}
+	PBS_JOBID <- Sys.getenv("PBS_JOBID")
+  if (nchar(PBS_JOBID) == 0){
+  	PBS_JOBID <- "not in PBS queue"
+  	filename <- format(Sys.time(), "%Y-%m-%dT%H%m%s.txt")
+  } else {
+  	filename <- paste0(PBS_JOBID, ".txt")
+  }
+	
+	audit(filename = file.path(path, filename),
+				pbs_jobid = PBS_JOBID)
+}

@@ -11,7 +11,7 @@ email: "btupper@bigelow.org"
 input_path: "/home/btupper/edna/data/examples/SK18S"
 output_path: "/home/btupper/edna/data/examples/SK18S_results"
 verbose: info
-multithread: 24
+multithread: auto
 dada2_plotQualityProfile:
   nplots: 2
 dada2_filterAndTrim_filtN:
