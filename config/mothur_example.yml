@@ -1,0 +1,68 @@
+# edna-dada2 configuration file
+#
+# Follows Kevin/Pete's SK18S example
+#
+# required:  email, input_path, output_path
+# all other values have defaults if unspecified
+# verbose can be trace, debug, info (default), warn, error, fatal.  Only messages
+#   at or above severity of verbosity level are output (to console and log)
+version: mothur_example
+email: "btupper@bigelow.org"
+input_path: "/home/btupper/edna/data/examples/mothur/MiSeq_SOP"
+output_path: "/home/btupper/edna/data/examples/mothur/MiSeq_SOP_results"
+verbose: info
+multithread: auto
+dada2_plotQualityProfile:
+  nplots: 2
+dada2_filterAndTrim_filtN:
+  name: "filtN"
+  truncLen: 
+  - 275
+  - 225
+  maxN: 0.0
+  maxEE:
+  - 2
+  - 2
+  truncQ: 2
+  rm.phix: yes
+  compress: yes
+dada2_learnErrors:
+  name: "learnErrors"
+dada2_dada_filtered:
+  name: "dada"
+cutadapt:
+  app: "/mnt/modules/bin/dada2/1.12/bin/cutadapt"
+  more_args: "--minimum-length 25.0 -n 2.0"
+dada2_filterAndTrim_filtered:
+  name: "filtered"
+  truncLen: 
+  - 240
+  - 160
+  maxN: 0.0
+  maxEE:
+  - 2
+  - 2
+  truncQ: 2
+  rm.phix: yes
+  compress: yes
+dada2_removeBimeraDenovo_seqtab:
+  method: "consensus"
+  verbose: yes
+dada2_assignTaxonomy_nochim:
+  refFasta: "/home/btupper/edna/data/examples/mothur/silva_nr_v132_train_set.fa.gz"
+  minBoot: 0
+  outputBootstraps: yes
+  verbose: yes
+  taxLevels:
+  - "Kingdom"
+  - "Supergroup"
+  - "Division"
+  - "Class"
+  - "Order"
+  - "Family"
+  - "Genus"
+  - "Species"
+primer:
+  FWD: "CYGCGGTAATTCCAGCTC"
+  REV: "AYGGTATCTRATCRTCTTYG"
+
