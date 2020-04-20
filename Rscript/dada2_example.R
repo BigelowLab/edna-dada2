@@ -195,4 +195,6 @@ main <- function(
 # we only run is run as a script - not if interactive
 if (!interactive()){
   cfgfile <- commandArgs(trailingOnly = TRUE)[1]
-  ok
+  ok <- main(cfgfile)
+  quit(save = "no", status = ok)
+}
