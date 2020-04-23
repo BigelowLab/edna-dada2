@@ -136,11 +136,20 @@ main <- function(
     flog.error("learnErrors_path not created: %s", learnErrors_path)
     return(RETURN + 1)  
   }
-  err <- dadautils::learn_errors(filtN_files,
-    output_path = learnErrors_path,
-    multithread = CFG$multithread,
-    save_output = TRUE, 
-    save_graphics = TRUE)
+  if (interactive()){
+   err <- list(
+      forward =  dada2::learnErrors(filtN_files$forward, multithread = CFG$multithread),
+      reverse =  dada2::learnErrors(filtN_files$reverse, multithread = CFG$multithread)
+    )
+  } else {
+  	err <- dadautils::learn_errors(filtN_files,
+  	  output_path = learnErrors_path,
+  	  multithread = CFG$multithread,
+  	 save_output = TRUE, 
+  	  save_graphics = TRUE)
+  }
+ 
+  
   
   flog.info("run dada")
   dada_r <- dadautils::run_dada(
