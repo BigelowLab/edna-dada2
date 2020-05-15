@@ -1,2 +1,0 @@
-cat(Sys.time(),  "\n")
-cat(.libPaths(), sep = "\n", file = "testme.txt", append = TRUE)
