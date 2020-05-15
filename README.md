@@ -12,7 +12,7 @@ Divisive Amplicon Denoising Algorithm [dada2](https://benjjneb.github.io/dada2/i
     
     - [compressr](https://github.com/BigelowLab/compressr)
     
-    - [dada2](https://github.com/BigelowLab/dadautils)
+    - [dadautils](https://github.com/BigelowLab/dadautils)
     
  + Load the dada2 module
  
