@@ -67,6 +67,7 @@ main <- function(
   ok <- flog.threshold(getFromNamespace(toupper(CFG$verbose[1]), pos = "package:futile.logger"))
   ok <- flog.appender(appender.tee(file.path(CFG$output_path, "log")) )
   flog.info("starting run: %s", cfg)
+  flog.info("NCPUS: %s", as.character(CFG$multithread))
   flog.info("System PID: %s", Sys.getpid())
   flog.info("PBS_JOBID: %s", PBS_JOBID)
   flog.info("VERSION: %s", CFG$version)
@@ -127,7 +128,8 @@ main <- function(
                          truncQ       = CFG$dada2_filterAndTrim_filtN$truncQ,
                          rm.phix      = CFG$dada2_filterAndTrim_filtN$rm.phix,
                          compress     = CFG$dada2_filterAndTrim_filtN$compress) %>%
-    readr::write_csv(file.path(CFG$output_path, paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
+    readr::write_csv(file.path(CFG$output_path, 
+      paste0(CFG$dada2_filterAndTrim_filtN$name, "-results.csv")))
   
   flog.info("learn errors")
   filtN_files <- dadautils::list_fastq(filtN_path)  
@@ -136,18 +138,13 @@ main <- function(
     flog.error("learnErrors_path not created: %s", learnErrors_path)
     return(RETURN + 1)  
   }
-  if (interactive()){
-   err <- list(
-      forward =  dada2::learnErrors(filtN_files$forward, multithread = CFG$multithread),
-      reverse =  dada2::learnErrors(filtN_files$reverse, multithread = CFG$multithread)
-    )
-  } else {
-  	err <- dadautils::learn_errors(filtN_files,
-  	  output_path = learnErrors_path,
-  	  multithread = CFG$multithread,
-  	 save_output = TRUE, 
-  	  save_graphics = TRUE)
-  }
+ 
+  err <- dadautils::learn_errors(filtN_files,
+    output_path = learnErrors_path,
+    multithread = CFG$multithread,
+  save_output = TRUE, 
+   save_graphics = TRUE)
+
  
   
   
@@ -160,7 +157,7 @@ main <- function(
   # run merge pairs
   flog.info("merge pairs")
   mergers <- dadautils::merge_pairs(filtN_files, dada_r, verbose = TRUE)
-  saveRDS(mergers, file = file.path(CFF$output_path, "mergers.rds"))  
+  saveRDS(mergers, file = file.path(CFG$output_path, "mergers.rds"))  
   
 
   flog.info("make sequence table")
@@ -178,13 +175,14 @@ main <- function(
 
   track <- dplyr::tibble(
                          name               = sample.names,
-                         input              = filtered_r$reads.in, 
-                         filtered           = filtered_r$reads.out,
+                         input              = filtN_r$reads.in, 
+                         filtered           = filtN_r$reads.out,
                          denoised_forward   = sapply(dada_r$forward, count_uniques), 
                          denoised_reverse   = sapply(dada_r$reverse, count_uniques), 
                          merged             = sapply(mergers, count_uniques), 
                          nonchim            = rowSums(seqtab.nochim)) %>%
     readr::write_csv(file.path(CFG$output_path, "track.csv"))
+
   
   flog.info("assign taxonomy")
   taxa <- dada2::assignTaxonomy(seqtab.nochim, 
@@ -195,7 +193,7 @@ main <- function(
       verbose           = CFG$dada2_assignTaxonomy_nochim$verbose, 
       multithread       = CFG$multithread) %>%
     dplyr::as_tibble() %>%
-    read::write_csv(file.path(CFG$output_path, "taxa.csv"))
+    readr::write_csv(file.path(CFG$output_path, "taxa.csv"))
 
   return(RETURN)
 } #main
