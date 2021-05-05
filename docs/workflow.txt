@@ -1,7 +1,0 @@
-
-### define inputs
-input_path = "."
-
-### list input files (forward and reverse)
-fq_list <- list_fastq(input_path)
-
