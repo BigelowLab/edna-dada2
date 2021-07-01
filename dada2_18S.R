@@ -73,11 +73,13 @@ main <- function(CFG){
                                         maxN         = CFG$dada2_filterAndTrim_filtN$maxN, 
                                         multithread  = CFG$multithread, 
                                         truncLen     = CFG$dada2_filterAndTrim_filtN$truncLen,
+					cutoff_params = CFG$dada2_filterAndTrim_filtN$cutoff_params,
                                         minLen       = CFG$dada2_filterAndTrim_filtN$minLen,
                                         maxEE        = CFG$dada2_filterAndTrim_filtN$maxEE,
                                         truncQ       = CFG$dada2_filterAndTrim_filtN$truncQ,
                                         rm.phix      = CFG$dada2_filterAndTrim_filtN$rm.phix,
                                         compress     = CFG$dada2_filterAndTrim_filtN$compress,
+					verbose      = CFG$dada2_filterAndTrim_filtN$verbose,
                                         save_results = TRUE)
   
   

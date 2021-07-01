@@ -7,10 +7,10 @@
 # verbose can be trace, debug, info (default), warn, error, fatal.  Only messages
 #   at or above severity of verbosity level are output (to console and log)
 global:
-  data_path: /mnt/storage/data/edna/dada/projects/robin_foo/may
-  reference_path: /mnt/storage/data/edna/dada/reference
+  data_path: /mnt/storage/data/edna/dada/projects/
+  reference_path: /mnt/storage/data/edna/refdb/dada
 version: v1.000
-email: "rsleith@bigelow.org"
+email: "user@bigelow.org"
 input_path: $GLOBAL_DATA_PATH/cutadapt
 output_path: $GLOBAL_DATA_PATH/process
 verbose: info
@@ -19,9 +19,13 @@ dada2_plotQualityProfile:
   nplots: 2
 dada2_filterAndTrim_filtN:
   name: "filtN"
-  truncLen: 
-  - 250
-  - 200
+  truncLen: "auto"
+#  truncLen:
+#  - 250
+#  - 200
+  cutoff_params:
+    score: 30
+    model: "Mean ~ poly(Cycle, 2)"
   minLen: 100
   maxN: 0.0
   maxEE:
@@ -30,6 +34,7 @@ dada2_filterAndTrim_filtN:
   truncQ: 2
   rm.phix: yes
   compress: yes
+  verbose: yes
 dada2_learnErrors:
   name: "learnErrors"
 dada2_dada_filtered:
@@ -46,7 +51,7 @@ dada2_assignTaxonomy_nochim:
   #refFasta: $GLOBAL_REFERENCE_PATH/silva_nr_v138_train_set_dada2.fasta
   #refFasta: $GLOBAL_REFERENCE_PATH/silva_132.18s.99_rep_set.dada2.fa.gz
   #refFasta: $GLOBAL_REFERENCE_PATH/pr2_version_4.12.0_18S_dada2.fasta.gz
-  minBoot: 0
+  minBoot: 50
   outputBootstraps: yes
   verbose: yes
   taxLevels:
