@@ -24,7 +24,7 @@ dada2_filterAndTrim_filtN:
 #  - 250
 #  - 200
   cutoff_params:
-    score: 30
+    score: 32
     model: "Mean ~ poly(Cycle, 2)"
   minLen: 100
   maxN: 0.0

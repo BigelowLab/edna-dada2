@@ -1,0 +1,5 @@
+Sample,Name,Site,Collection Year,Collection Month
+E.EnvStd.01_S186_L001_R1_001_trimmed.fastq.gz,EnvStd_2020_08_31,Damariscove,2020,July
+E.EvStd_S358_L001_R1_001_trimmed.fastq.gz,EnvStd_2021_04_12,Damariscove,2020,July
+E.HAB179_S370_L001_R1_001_trimmed.fastq.gz,HAB179,Harpswell ,2020,November
+
