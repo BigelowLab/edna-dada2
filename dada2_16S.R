@@ -188,7 +188,7 @@ main <- function(CFG){
                      file.path(CFG$output_path, "taxa-cleaned.csv"))
   }
   
-  flog.info("done: %s", basename(filename))  
+  fflog.info("done: %s", CFG$output_path)   
   return(RETURN)
 } #main
 
