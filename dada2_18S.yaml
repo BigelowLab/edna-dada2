@@ -15,8 +15,6 @@ input_path: $GLOBAL_DATA_PATH/cutadapt
 output_path: $GLOBAL_DATA_PATH/process
 verbose: info
 multithread: 16
-dada2_plotQualityProfile:
-  nplots: 2
 dada2_filterAndTrim_filtN:
   name: "filtN"
   truncLen: "auto"

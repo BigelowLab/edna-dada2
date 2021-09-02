@@ -53,13 +53,8 @@ main <- function(CFG){
   
   sample.names <- dadautils::extract_sample_names(fq_files, rule="basename")
   
-  if ("dada2_plotQualityProfile" %in% names(CFG)){ 
-    ofile = file.path(CFG$output_path, "quality_profiles.pdf")
-    flog.info("plotting quality profiles: %s", ofile)
-    dadautils::plot_qualityProfiles(fq_files, 
-                                    n = CFG$dada2_plotQualityProfile$nplots,
-                                    ofile = ofile)
-  }
+  quality_profile_pairs(fq_files, plot_filename=file.path(CFG$output_path, "quality_profiles.pdf"), 
+                        overlap_filename=file.path(CFG$output_path, "overlap.csv"))
   
   flog.info("filter and trim of input files")
   filtN_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtN$name)
@@ -199,7 +194,7 @@ main <- function(CFG){
 if (!interactive()){
   cfgfile <- commandArgs(trailingOnly = TRUE)[1]
 } else {
-  cfgfile = ""
+  cfgfile = "/mnt/storage/data/edna/packages/edna-dada2/dada2_18S.yaml"
 }
 
 CFG <- charlier::read_config(cfgfile[1], 
