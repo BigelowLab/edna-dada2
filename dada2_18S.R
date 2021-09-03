@@ -53,8 +53,14 @@ main <- function(CFG){
   
   sample.names <- dadautils::extract_sample_names(fq_files, rule="basename")
   
+  flog.info("plot quality profiles")  
   quality_profile_pairs(fq_files, plot_filename=file.path(CFG$output_path, "quality_profiles.pdf"), 
                         overlap_filename=file.path(CFG$output_path, "overlap.csv"))
+
+  flog.info("estimate expected error thresholds (for maxEE)")
+  paired_quality_scores(fq_files) %>%
+   paired_ee_per_read() %>%
+    paired_ee_threshold(sample_names  = sample.names, filename = file.path(CFG$output_path, "EE_thresholds.csv"))
   
   flog.info("filter and trim of input files")
   filtN_path <- file.path(CFG$output_path, CFG$dada2_filterAndTrim_filtN$name)
