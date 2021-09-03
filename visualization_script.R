@@ -39,3 +39,11 @@ ps.top20 <- transform_sample_counts(ps_alv, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
 plot_bar(ps.top20, x="Name", fill="Genus") + 
   theme(text = element_text(size = 18), legend.position = "right")
+
+#NMDS - not very meaningful for 3 samples but including code for folks who may want to modify for their dataset
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+p <- plot_ordination(ps.prop, ord.nmds.bray, color="Site", shape="Collection.Month", title="Bray NMDS")+
+  geom_point(size = 7) +
+  geom_text(mapping = aes(label = Name), size = 4,vjust = 2.5)#+
+p
