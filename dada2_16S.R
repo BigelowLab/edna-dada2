@@ -80,9 +80,21 @@ main <- function(CFG){
                                         compress     = CFG$dada2_filterAndTrim_filtN$compress,
                                         save_results = TRUE)
   
-  
-  flog.info("learn errors")
   filtN_files <- dadautils::list_filepairs(filtN_path) 
+                                          
+  if (!identical(lengths(fq_files), lengths(filtN_files))){
+   # presumably filter_and_trim dropped some files if we get here... 
+   # so we need to trim fq_files to match.  We assume that the output basenames are the same as the
+   # input basenames - so all we need to do is match
+   fq_files <- sapply(names(fq_files){
+     function(name){
+       ix <- basename(fq_files[[name]]) %in% basename(filtN_files[[name]])
+       fq_files[[name]][ix]
+     }
+   })
+  } # check for dropped inputs
+
+  flog.info("learn errors")
   
   learnErrors_path <- file.path(CFG$output_path, CFG$dada2_learnErrors$name)
   if (!charlier::make_path(learnErrors_path)) {
