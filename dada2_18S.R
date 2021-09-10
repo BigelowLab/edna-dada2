@@ -98,6 +98,9 @@ main <- function(CFG){
         ix <- basename(fq_files[[name]]) %in% basename(filtN_files[[name]])
         fq_files[[name]][ix]
      }, simplify = FALSE)
+    filtN_r <- filtN_r %>%
+           dplyr::filter(reads.out > 0)
+    sample.names <- dadautils::extract_sample_names(fq_files, rule="basename")
   } # check for dropped inputs
   
   
