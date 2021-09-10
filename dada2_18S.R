@@ -86,17 +86,18 @@ main <- function(CFG){
   
 
   filtN_files <- dadautils::list_filepairs(filtN_path) 
-  
+  if(identical(unname(lengths(filtN_files)), c(0,0))){
+    stop("No filtN files produced")
+  }
   if (!identical(lengths(fq_files), lengths(filtN_files))){
-   # presumably filter_and_trim dropped some files if we get here... 
-   # so we need to trim fq_files to match.  We assume that the output basenames are the same as the
-   # input basenames - so all we need to do is match
-   fq_files <- sapply(names(fq_files){
-     function(name){
-       ix <- basename(fq_files[[name]]) %in% basename(filtN_files[[name]])
-       fq_files[[name]][ix]
-     }
-   })
+    # presumably filter_and_trim dropped some files if we get here... 
+    # so we need to trim fq_files to match.  We assume that the output basenames are the same as the
+    # input basenames - so all we need to do is match
+    fq_files <- sapply(names(fq_files),
+      function(name){
+        ix <- basename(fq_files[[name]]) %in% basename(filtN_files[[name]])
+        fq_files[[name]][ix]
+     }, simplify = FALSE)
   } # check for dropped inputs
   
   
