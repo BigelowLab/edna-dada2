@@ -12,11 +12,11 @@
 # verbose can be trace, debug, info (default), warn, error, fatal.  Only messages
 #   at or above severity of verbosity level are output (to console and log)
 global:
-  data_path: /mnt/storage/data/edna/dada/projects/
+  data_path: /mnt/storage/data/edna/dada/projects/3step/18S
   reference_path: /mnt/storage/data/edna/refdb/dada
 version: "v1.000"
 email: "your_email@bigelow.org"
-input_path: $GLOBAL_DATA_PATH
+input_path: $GLOBAL_DATA_PATH/raw
 output_path: $GLOBAL_DATA_PATH/process
 verbose: "info"
 multithread: 16
