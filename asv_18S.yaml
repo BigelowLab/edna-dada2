@@ -1,0 +1,72 @@
+# edna-dada2 configuration file for preprocessing
+#  
+#  + cutadapt
+#  + quality profiling
+#  + filter and trim
+#  + learn errors
+#  
+# Follows dada2 example https://benjjneb.github.io/dada2/tutorial.html
+#
+# required:  email, input_path, output_path
+# all other values have defaults if unspecified
+# verbose can be trace, debug, info (default), warn, error, fatal.  Only messages
+#   at or above severity of verbosity level are output (to console and log)
+global:
+  data_path: /mnt/storage/data/edna/dada/projects/
+  reference_path: /mnt/storage/data/edna/refdb/dada
+version: "v1.000"
+email: "your_email@bigelow.org"
+input_path: $GLOBAL_DATA_PATH
+output_path: $GLOBAL_DATA_PATH/process
+verbose: "info"
+multithread: 16
+stage: "preprocess"
+primer:
+  FWD: "CYGCGGTAATTCCAGCTC"
+  REV: "AYGGTATCTRATCRTCTTYG"
+cutadapt:
+  run: yes
+  app: "/mnt/modules/bin/dada2/1.14.1/bin/cutadapt"
+  more_args: "--minimum-length 25.0 -n 2.0 --discard-untrimmed"
+dada2_filterAndTrim:
+  run: yes
+  name: "filtN"
+  truncLen: "auto"
+  cutoff_params:
+    score: 32
+    model: "Mean ~ poly(Cycle, 2)"
+  minLen: 100
+  maxN: 0.0
+  maxEE:
+  - 2
+  - 2
+  truncQ: 2
+  rm.phix: yes
+  compress: yes
+  verbose: yes
+dada2_learnErrors:
+  run: yes
+  name: "learnErrors"
+dada2_dada_filtered:
+  name: "dada"
+dada2_dada:
+  pool: no
+dada2_merge_pairs:
+  minOverlap: 20
+dada2_removeBimeraDenovo_seqtab:
+  method: "consensus"
+  verbose: yes
+dada2_assignTaxonomy_nochim:
+  refFasta: $GLOBAL_REFERENCE_PATH/pr2_version_4.13.0_18S_dada2.fasta.gz
+  minBoot: 50
+  outputBootstraps: yes
+  verbose: yes
+  taxLevels:
+  - "Kingdom"
+  - "Supergroup"
+  - "Division"
+  - "Class"
+  - "Order"
+  - "Family"
+  - "Genus"
+  - "Species"
