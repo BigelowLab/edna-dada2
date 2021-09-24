@@ -62,7 +62,7 @@ main <- function(CFG){
   
   
   # cutadapt?
-  if ("cutadapt" %in% names(CFG) && CFG$cutadapt$run){
+  if ("cutadapt" %in% names(CFG)){
     charlier::info("run cutadapt on input files")
     cutadapt_path <- file.path(CFG$output_path, "cutadapt")
     ok <- charlier::make_path(cutadapt_path)
@@ -77,7 +77,6 @@ main <- function(CFG){
       charlie::error("Something is wrong with cutadapt: %s", paste(ok, sep = ", "))
       stop("what just happened to cutadapt?")
     }
-    CFG$cutadapt$run <- FALSE
   }
   
   
@@ -85,7 +84,7 @@ main <- function(CFG){
   qpp <- quality_profile_pairs(input_files, 
                                plot_filename=file.path(CFG$output_path, "quality_profiles.pdf"), 
                                overlap_filename=file.path(CFG$output_path, "overlap.csv")) %>%
-                               dadautils::write_QPP(file.path(CFG$output_path, "qpp.rds"))
+                               dadautils::write_QPP(file.path(CFG$output_path, "qpp"))
   
   # if the user provided explicit truncLen values we use those (this should be very rare or non-existent), if not then we extract those from qpp
   if (inherits(CFG$dada2_filterAndTrim$truncLen, "character")){
@@ -117,7 +116,7 @@ main <- function(CFG){
                         filename = file.path(CFG$output_path, "EE_thresholds.csv"))
   
   
-  if(CFG$dada2_filterAndTrim$run){
+  if("dada2_filterAndTrim" %in% names(CFG)){
   
     charlier::info("filter and trim of input files")
     
@@ -159,11 +158,10 @@ main <- function(CFG){
              dplyr::filter(reads.out > 0)
       sample.names <- dadautils::extract_sample_names(input_files, rule="basename")
       
-      CFG$dada2_filterAndTrim$run <- FALSE
       
     } # check for dropped inputs
   
-    if (CFG$dada2_learnErrors$run){
+    if ("dada2_learnErrors" %in% names(CFG)){
       charlier::info("learn errors")
       err <- dadautils::learn_errors(filtN_files,
                                      output_path = CFG$output_path,
@@ -171,7 +169,6 @@ main <- function(CFG){
                                      save_output = FALSE, 
                                      save_graphics = TRUE) %>%
              dadautils::write_errors(file.path(CFG$output_path, "learn_errors"))
-      CFG$dada2_learnErrors$run <- FALSE
     } # learn errors
   } # filter and trim
   

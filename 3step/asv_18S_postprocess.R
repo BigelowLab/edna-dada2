@@ -103,8 +103,7 @@ main <- function(CFG){
                                              method      = CFG$dada2_removeBimeraDenovo_seqtab$method, 
                                              multithread = CFG$multithread, 
                                              verbose     = CFG$dada2_removeBimeraDenovo_seqtab$verbose)
-  #tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) %>%
-  #  readr::write_csv(file.path(CFG$output_path, "seqtab-nochim.csv"))
+
   
   charlier::info("write fasta")
   fasta <- dadautils::asv_fasta(seqtab.nochim, file = file.path(CFG$output_path,"ASV_sequences.fasta"))

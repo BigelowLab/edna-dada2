@@ -25,11 +25,9 @@ primer:
   FWD: "CYGCGGTAATTCCAGCTC"
   REV: "AYGGTATCTRATCRTCTTYG"
 cutadapt:
-  run: yes
   app: "/mnt/modules/bin/dada2/1.14.1/bin/cutadapt"
   more_args: "--minimum-length 25.0 -n 2.0 --discard-untrimmed"
 dada2_filterAndTrim:
-  run: yes
   name: "filtN"
   truncLen: "auto"
   cutoff_params:
@@ -45,7 +43,6 @@ dada2_filterAndTrim:
   compress: yes
   verbose: yes
 dada2_learnErrors:
-  run: yes
   name: "learnErrors"
 dada2_dada_filtered:
   name: "dada"
