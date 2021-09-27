@@ -25,11 +25,11 @@ head(rawotus@tax_table)
 wh0 <-  genefilter_sample(rawotus, filterfun_sample(function(x) x > 2), A=2)
 ps <- prune_taxa(wh0, rawotus)
 
-#make a quick barplot of the highest taxonomic level
-top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:200]
-ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
-ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="Name", fill="Supergroup") + 
+#make a barplot of the top 200 most abundant ASVs, color coded by the highest taxonomic level (Supergroup)
+top200 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:200]
+ps.top200 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top200 <- prune_taxa(top200, ps.top200)
+plot_bar(ps.top200, x="Name", fill="Supergroup") + 
   theme(text = element_text(size = 18), legend.position = "right")
 
 #dig deeper and compare just Alveolata proportions
@@ -47,3 +47,9 @@ p <- plot_ordination(ps.prop, ord.nmds.bray, color="Site", shape="Collection.Mon
   geom_point(size = 7) +
   geom_text(mapping = aes(label = Name), size = 4,vjust = 2.5)#+
 p
+
+#heatmap to compare ASVs between samples
+top25 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:25]
+ps.top25 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top25 <- prune_taxa(top25, ps.top25)
+plot_heatmap(ps.top25, taxa.label="Genus", sample.label="Name")
