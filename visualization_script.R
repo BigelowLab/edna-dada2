@@ -1,5 +1,5 @@
-#set your working directory to the dada_project_local directory with your files from Charlie
-setwd("/path/to/local/dada_project_local")
+#set your working directory to the dada_3step_local directory with your files from Charlie
+setwd("/path/to/local/dada_3step_local")
 taxa <- read.csv("ASV_taxa.csv", header=T, row.names=1)
 head(taxa)
 seqtab.nochim <- read.csv("seqtab-nochim.csv", header=T, row.names=1)
