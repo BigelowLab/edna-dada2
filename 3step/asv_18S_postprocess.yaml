@@ -1,10 +1,10 @@
 global:
-  data_path: /mnt/storage/data/edna/dada/projects/3step/18S
+  data_path: /mnt/storage/data/edna/dada/projects/
   reference_path: /mnt/storage/data/edna/refdb/dada
 version: v1.000
 email: your_email@bigelow.org
-input_path: /mnt/storage/data/edna/dada/projects/3step/18S/process/filtN
-output_path: /mnt/storage/data/edna/dada/projects/3step/18S/process
+input_path: /mnt/storage/data/edna/dada/projects/
+output_path: /mnt/storage/data/edna/dada/projects/
 verbose: info
 multithread: 16
 stage: postprocess
@@ -16,7 +16,7 @@ cutadapt:
   more_args: --minimum-length 25.0 -n 2.0 --discard-untrimmed
 dada2_filterAndTrim:
   name: filtN
-  truncLen: /mnt/storage/data/edna/dada/projects/3step/18S/process/truncLen.csv
+  truncLen: /mnt/storage/data/edna/dada/projects/process/truncLen.csv
   cutoff_params:
     score: 32
     model: Mean ~ poly(Cycle, 2)

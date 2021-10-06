@@ -8,5 +8,8 @@
 
 module load dada2
 data_path=/mnt/storage/data/edna/dada/projects/
-Rscript $data_path"/dada2_18S.R" $data_path"/dada2_18S.yaml"
+Rscript $data_path"/asv_18S_preprocess.R" $data_path"/asv_18S_preprocess.yaml"
+
+#Rscript $data_path"/asv_18S_postprocess.R" $data_path"/asv_18S_postprocess.yaml"
+
 
