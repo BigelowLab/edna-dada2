@@ -3,8 +3,8 @@ global:
   reference_path: /mnt/storage/data/edna/refdb/dada
 version: v1.000
 email: your_email@bigelow.org
-input_path: /mnt/storage/data/edna/dada/projects/
-output_path: /mnt/storage/data/edna/dada/projects/
+input_path: /mnt/storage/data/edna/dada/projects/process/filtN
+output_path: /mnt/storage/data/edna/dada/projects/process
 verbose: info
 multithread: 16
 stage: postprocess
