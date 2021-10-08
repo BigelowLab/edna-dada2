@@ -81,7 +81,10 @@ main <- function(CFG){
   
   
   charlier::info("generate quality profiles")  
-  qpp <- quality_profile_pairs(input_files, 
+  qpp <- quality_profile_pairs(input_files,
+                               amplicon_length=CFG$quality$amplicon_length,
+                               min_overlap=CFG$quality$min_overlap,
+                               n= CFG$quality$sample_n, 
                                plot_filename=file.path(CFG$output_path, "quality_profiles.pdf"), 
                                overlap_filename=file.path(CFG$output_path, "overlap.csv")) %>%
                                dadautils::write_QPP(file.path(CFG$output_path, "qpp"))
