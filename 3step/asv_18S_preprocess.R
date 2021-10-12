@@ -72,7 +72,8 @@ main <- function(CFG){
       }, simplify = FALSE)
     ok <- dadautils::run_cutadapt(cut_files, input_files, CFG, save_graphics = FALSE)
     if (all(ok == 0)) {
-      input_files <- cut_files
+      input_files <- cut_files %>%
+        dadautils::verify_filepairs()
     } else {
       charlie::error("Something is wrong with cutadapt: %s", paste(ok, sep = ", "))
       stop("what just happened to cutadapt?")
@@ -84,7 +85,8 @@ main <- function(CFG){
   qpp <- quality_profile_pairs(input_files,
                                amplicon_length=CFG$quality$amplicon_length,
                                min_overlap=CFG$quality$min_overlap,
-                               n= CFG$quality$sample_n, 
+                               n = CFG$quality$sample_n, 
+                               params = CFG$dada2_filterAndTrim$cutoff_params,
                                plot_filename=file.path(CFG$output_path, "quality_profiles.pdf"), 
                                overlap_filename=file.path(CFG$output_path, "overlap.csv")) %>%
                                dadautils::write_QPP(file.path(CFG$output_path, "qpp"))
