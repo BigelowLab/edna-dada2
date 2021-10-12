@@ -72,11 +72,17 @@ main <- function(CFG){
       }, simplify = FALSE)
     ok <- dadautils::run_cutadapt(cut_files, input_files, CFG, save_graphics = FALSE)
     if (all(ok == 0)) {
-      input_files <- cut_files %>%
-        dadautils::verify_filepairs()
+      
+      #input_files <- cut_files %>%
+      #  dadautils::verify_filepairs()
+      
+      charlier::info("checking for newly created input fastq files withing cutadapt path")
+      input_files <- dadautils::list_filepairs(cutadapt_path) %>%
+                       dadautils::verify_filepairs()
+      
     } else {
       charlie::error("Something is wrong with cutadapt: %s", paste(ok, sep = ", "))
-      stop("what just happened to cutadapt?")
+      stop("dadutils::run_cutadapt - what just happened to cutadapt?")
     }
   }
   
@@ -100,8 +106,9 @@ main <- function(CFG){
       if (!norev) truncLen <- dplyr::mutate(truncLen, 
           reverse = qpp$reverse$cutoff$Cycle,
           reverse_file = input_files$reverse)
-      truncLen <- readr::write_csv(truncLen, file.path(CFG$output_path, "truncLen.csv"))
-      CFG$dada2_filterAndTrim$truncLen <- file.path(CFG$output_path, "truncLen.csv")
+      trunLen_file <- file.path(CFG$output_path, "truncLen.csv")
+      truncLen <- readr::write_csv(truncLen, trunLen_file )
+      CFG$dada2_filterAndTrim$truncLen <- trunLen_file 
     } else if (file.exists(CFG$dada2_filterAndTrim$truncLen)){
       charlier::info("reading truncLen from file: %s", CFG$dada2_filterAndTrim$truncLen)
       truncLen <- readr::read_csv(CFG$dada2_filterAndTrim$truncLen)
@@ -178,6 +185,8 @@ main <- function(CFG){
   } # filter and trim
   
   CFG$stage <- "supervision"
+  CFG$input_path <- filtN_path
+  
   charlier::write_config(CFG, file.path(CFG$output_path, basename(CFGFILE)))
   charlier::info("done: %s", CFG$output_path)   
   return(RETURN)
