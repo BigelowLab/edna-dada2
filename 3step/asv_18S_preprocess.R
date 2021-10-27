@@ -76,9 +76,10 @@ main <- function(CFG){
       #input_files <- cut_files %>%
       #  dadautils::verify_filepairs()
       
-      charlier::info("checking for newly created input fastq files withing cutadapt path")
+      charlier::info("checking for newly created input fastq files within cutadapt path")
       input_files <- dadautils::list_filepairs(cutadapt_path) %>%
-                       dadautils::verify_filepairs()
+                       dadautils::verify_filepairs(min_size=100)
+      if (length(input_files[[1]]) == 0) stop("no files made it past cutadapt, check cutadapt settings")
       
     } else {
       charlie::error("Something is wrong with cutadapt: %s", paste(ok, sep = ", "))
