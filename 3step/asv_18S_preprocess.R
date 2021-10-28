@@ -54,6 +54,11 @@ main <- function(CFG){
   charlier::info("checking for input fastq files")
   input_files <- dadautils::list_filepairs(CFG$input_path) %>%
                    dadautils::verify_filepairs()
+  if (all( count_filepairs(input_files) == 0 )) {
+    msg <- sprintf("check list_filepairs patterns, no files found in %s", CFG$input_path)
+    charlier::error(msg)
+    stop(msg)
+  }
 
   # pacbio?
   norev <- (length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
