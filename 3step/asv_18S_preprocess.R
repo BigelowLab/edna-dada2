@@ -90,7 +90,7 @@ main <- function(CFG){
         stop("no files made it past cutadapt, check cutadapt settings")
       }      
     } else {
-      charlie::error("Something is wrong with cutadapt: %s", paste(ok, sep = ", "))
+      charlier::error("Something is wrong with cutadapt: %s", paste(ok, sep = ", "))
       stop("dadutils::run_cutadapt - what just happened to cutadapt?")
     }
   }
