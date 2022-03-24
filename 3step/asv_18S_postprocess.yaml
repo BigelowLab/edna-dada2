@@ -13,7 +13,7 @@ primer:
   REV: AYGGTATCTRATCRTCTTYG
 cutadapt:
   app: /mnt/modules/bin/dada2/1.14.1/bin/cutadapt
-  more_args: --minimum-length 25.0 -n 2.0 --discard-untrimmed
+  more_args: --minimum-length 25 -n 2 --discard-untrimmed
 dada2_filterAndTrim:
   name: filtN
   truncLen: /mnt/storage/data/edna/dada/projects/process/truncLen.csv
