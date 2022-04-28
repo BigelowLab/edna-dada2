@@ -1,13 +1,14 @@
-library(dplyr)
-library(readr)
+supressPackageStarupMessages({
+  library(dplyr)
+  library(readr)
 
-library(ShortRead)  
-library(Biostrings)
-library(dada2)
+  library(ShortRead)  
+  library(Biostrings)
+  library(dada2)
 
-library(charlier)
-library(dadautils)
-
+  library(charlier)
+  library(dadautils)
+  )}
 
 #' main processing step - tries to operate as a pipeline returning 0 (success) or
 #' failure ( > 0)
@@ -127,6 +128,7 @@ main <- function(CFG){
   
   
   charlier::info("assign taxonomy")
+  # always returns a 2-element list with tax and boot as matrices (or boot = NULL)
   taxa <- dadautils::assign_taxonomy(seqtab.nochim, 
                                      refFasta          = CFG$dada2_assignTaxonomy_nochim$refFasta, 
                                      taxLevels         = CFG$dada2_assignTaxonomy_nochim$taxLevels, 
@@ -139,9 +141,10 @@ main <- function(CFG){
                                      filename          = file.path(CFG$output_path, "taxa.csv"))
   
   charlier::info("writing ASV_taxa")
-  ttaxa <- dplyr::as_tibble(taxa) %>%
+  ttaxa <- dplyr::as_tibble(taxa$tax) %>%
     dplyr::mutate(ASV = names(fasta)) %>%
     dplyr::relocate(ASV, .before = 1) %>%
+    dplyr::bind_cols(dplyr::as_tibble(taxa$boot)) %>%
     readr::write_csv(file.path(CFG$output_path, "ASV_taxa.csv"))
 
   
