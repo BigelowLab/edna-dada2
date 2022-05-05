@@ -59,7 +59,7 @@ main <- function(CFG){
   # pacbio?
   norev <- (length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
  
-  sample.names <- dadautils::extract_sample_names(input_files, rule="basename")
+  sample.names <- dadautils::extract_sample_names(input_files, rule="before first _")
   
   
   filter_trim_file <- file.path(CFG$output_path, "filter_and_trim.csv")

@@ -63,7 +63,7 @@ main <- function(CFG){
   # pacbio?
   norev <- (length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
  
-  sample.names <- dadautils::extract_sample_names(input_files, rule="basename")
+  sample.names <- dadautils::extract_sample_names(input_files, rule="before first _")
   
   
   # cutadapt?
@@ -84,7 +84,7 @@ main <- function(CFG){
       charlier::info("checking for newly created input fastq files within cutadapt path")
       input_files <- dadautils::list_filepairs(cutadapt_path) %>%
                        dadautils::verify_filepairs(min_size=100)
-      sample.names <- dadautils::extract_sample_names(input_files,rule="basename")
+      sample.names <- dadautils::extract_sample_names(input_files,rule="before first _")
       if (all(count_filepairs(input_files) == 0)) {
         charlier::error("no files made it past cutadapt, check cutadapt settings")
         stop("no files made it past cutadapt, check cutadapt settings")
@@ -177,7 +177,7 @@ main <- function(CFG){
        }, simplify = FALSE)
       filtN_r <- filtN_r %>%
              dplyr::filter(reads.out > 0)
-      sample.names <- dadautils::extract_sample_names(input_files, rule="basename")
+      sample.names <- dadautils::extract_sample_names(input_files, rule="before first _")
       
       
     } # check for dropped inputs
