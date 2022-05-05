@@ -1,14 +1,12 @@
-supressPackageStarupMessages({
-  library(dplyr)
-  library(readr)
+library(dplyr)
+library(readr)
 
-  library(ShortRead)  
-  library(Biostrings)
-  library(dada2)
+library(ShortRead)  
+library(Biostrings)
+library(dada2)
 
-  library(charlier)
-  library(dadautils)
-  )}
+library(charlier)
+library(dadautils)
 
 #' main processing step - tries to operate as a pipeline returning 0 (success) or
 #' failure ( > 0)
