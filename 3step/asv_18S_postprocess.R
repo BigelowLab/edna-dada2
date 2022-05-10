@@ -134,16 +134,19 @@ main <- function(CFG){
                                      outputBootstraps  = CFG$dada2_assignTaxonomy_nochim$outputBootstraps, 
                                      verbose           = CFG$dada2_assignTaxonomy_nochim$verbose, 
                                      multithread       = CFG$multithread,
-                                     drop_levels       = "NA",
-                                     save_file         = TRUE,
-                                     filename          = file.path(CFG$output_path, "taxa.csv"))
+                                     drop_levels       = "NA")
+                                     #,
+                                     #save_file         = TRUE,
+                                     #filename          = file.path(CFG$output_path, "taxa.csv"))
   
   charlier::info("writing ASV_taxa")
-  ttaxa <- dplyr::as_tibble(taxa$tax) %>%
-    dplyr::mutate(ASV = names(fasta)) %>%
-    dplyr::relocate(ASV, .before = 1) %>%
-    dplyr::bind_cols(dplyr::as_tibble(taxa$boot)) %>%
-    readr::write_csv(file.path(CFG$output_path, "ASV_taxa.csv"))
+  ttaxa <- dadautils::merge_taxonomy(fasta, taxa, 
+                                     filename = file.path(CFG$output_path, "ASV_taxa.csv"))
+  #ttaxa <- dplyr::as_tibble(taxa$tax) %>%
+  #  dplyr::mutate(ASV = names(fasta)) %>%
+  #  dplyr::relocate(ASV, .before = 1) %>%
+  #  dplyr::bind_cols(dplyr::as_tibble(taxa$boot)) %>%
+  #  readr::write_csv(file.path(CFG$output_path, "ASV_taxa.csv"))
 
   
   if ("dada2_addSpecies" %in% names(CFG)){
@@ -151,17 +154,17 @@ main <- function(CFG){
     if (length(taxa) == 2 && "tax" %in% names(taxa)){
       taxa <- taxa$tax
     }
-    taxa <- dada2::addSpecies(taxa, refFasta = CFG$dada2_addSpecies$refFasta)
-    readr::write_csv(taxa %>% dplyr::as_tibble(), 
-                     file.path(CFG$output_path, "taxa-species.csv"))
+    tax <- dada2::addSpecies(taxa$tax, refFasta = CFG$dada2_addSpecies$refFasta) %>%
+             dplyr::as_tibble() %>%
+            readr::write_csv(file.path(CFG$output_path, "taxa-species.csv"))
   }
   
   if ("dada2_taxa_remove" %in% names(CFG)){
     charlier::info("remove unwanted values in taxonomy")
-    taxa <- taxa %>%
-      dadautils::taxa_remove(vars = CFG$dada2_taxa_remove)
-    readr::write_csv(taxa %>% dplyr::as_tibble(), 
-                     file.path(CFG$output_path, "taxa-cleaned.csv"))
+    tax <- taxa$tax %>%
+      dadautils::taxa_remove(vars = CFG$dada2_taxa_remove) %>%
+        dplyr::as_tibble() %>%
+        readr::write_csv(file.path(CFG$output_path, "taxa-cleaned.csv"))
   }
   
   
