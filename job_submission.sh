@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 #PBS -N run_dada2_pipeline
-#PBS -q normal
-#PBS -l ncpus=16,mem=50gb
-#PBS -l walltime=72:00:00
+#PBS -q devel
+#PBS -l ncpus=4,mem=5gb
+#PBS -l walltime=2:00:00
 #PBS -M user@bigelow.org
 #PBS -m abe
 
