@@ -29,15 +29,15 @@ ps <- prune_taxa(wh0, rawotus)
 top200 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:200]
 ps.top200 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top200 <- prune_taxa(top200, ps.top200)
-plot_bar(ps.top200, x="Name", fill="Supergroup") + 
+plot_bar(ps.top200, x="Name", fill="tax.Supergroup") + 
   theme(text = element_text(size = 18), legend.position = "right")
 
 #dig deeper and compare just Alveolata proportions
-ps_alv <- subset_taxa(ps, Supergroup == "Alveolata")
+ps_alv <- subset_taxa(ps, tax.Supergroup == "Alveolata")
 top20 <- names(sort(taxa_sums(ps_alv), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(ps_alv, function(OTU) OTU/sum(OTU))
 ps.top20 <- prune_taxa(top20, ps.top20)
-plot_bar(ps.top20, x="Name", fill="Genus") + 
+plot_bar(ps.top20, x="Name", fill="tax.Genus") + 
   theme(text = element_text(size = 18), legend.position = "right")
 
 #NMDS - not very meaningful for 3 samples but including code for folks who may want to modify for their dataset
@@ -52,4 +52,4 @@ p
 top25 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:25]
 ps.top25 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top25 <- prune_taxa(top25, ps.top25)
-plot_heatmap(ps.top25, taxa.label="Genus", sample.label="Name")
+plot_heatmap(ps.top25, taxa.label="tax.Genus", sample.label="Name")
