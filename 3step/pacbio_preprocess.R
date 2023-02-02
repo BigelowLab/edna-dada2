@@ -1,12 +1,14 @@
-library(dplyr)
-library(readr)
-
-library(ShortRead)  
-library(Biostrings)
-library(dada2)
-
-library(charlier)
-library(dadautils)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(readr)
+  
+  library(ShortRead)  
+  library(Biostrings)
+  library(dada2)
+  
+  library(charlier)
+  library(dadautils)
+})
 
 
 #' main processing step - tries to operate as a pipeline returning 0 (success) or
@@ -52,9 +54,9 @@ main <- function(CFG){
   charlier::info("OUTPUT PATH: %s", CFG$output_path)
   
   charlier::info("checking for input fastq files")
-  input_files <- auntie::list_filepairs(CFG$input_path, pattern_forward = "*.fastq.gz", verify=F) #%>%
-  #dadautils::verify_filepairs()
-  if (all( count_filepairs(input_files) == 0 )) {
+  input_files <- auntie::list_filepairs(CFG$input_path, pattern_forward = "*.fastq.gz", verify=F) #|>
+
+  if (all( auntie::count_filepairs(input_files) == 0 )) {
     msg <- sprintf("check list_filepairs patterns, no files found in %s", CFG$input_path)
     charlier::error(msg)
     stop(msg)
@@ -96,7 +98,7 @@ main <- function(CFG){
                                           rm.phix      = CFG$dada2_filterAndTrim$rm.phix,
                                           compress     = CFG$dada2_filterAndTrim$compress,
                                           verbose      = CFG$dada2_filterAndTrim$verbose,
-                                          save_results = FALSE) %>%
+                                          save_results = FALSE) |>
       readr::write_csv(file.path(CFG$output_path, "filter_and_trim.csv"))
     
     filtN_files <- auntie::list_filepairs(filtN_path,pattern_forward = "^.*.fastq.gz",verify=F) 
@@ -112,7 +114,7 @@ main <- function(CFG){
                               ix <- basename(input_files[[name]]) %in% basename(filtN_files[[name]])
                               input_files[[name]][ix]
                             }, simplify = FALSE)
-      filtN_r <- filtN_r %>%
+      filtN_r <- filtN_r |>
         dplyr::filter(reads.out > 0)
       sample.names <- dadautils::extract_sample_names(input_files, rule="basename")
       
@@ -127,7 +129,7 @@ main <- function(CFG){
                                      save_output = FALSE, 
                                      save_graphics = TRUE,
                                      errorEstimationFunction = PacBioErrfun,
-                                     BAND_SIZE = 32) %>%
+                                     BAND_SIZE = 32) |>
         dadautils::write_errors(file.path(CFG$output_path, "learn_errors"))
     } # learn errors
   } # filter and trim
@@ -148,11 +150,13 @@ if (!interactive()){
   CFGFILE <- ""
 }
 
+message(sprintf("CFGFILE: %s", CFGFILE))
+
 CFG <- charlier::read_config(CFGFILE[1], 
                              autopopulate = TRUE,
                              fields = list(
-                               data_path = "data_path",
-                               reference_path = "reference_path"),
+                             data_path = "data_path",
+                             reference_path = "reference_path"),
                              rootname = "global")
 
 if (!interactive()){

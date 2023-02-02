@@ -1,12 +1,14 @@
-library(dplyr)
-library(readr)
-
-library(ShortRead)  
-library(Biostrings)
-library(dada2)
-
-library(charlier)
-library(dadautils)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(readr)
+  
+  library(ShortRead)  
+  library(Biostrings)
+  library(dada2)
+  
+  library(charlier)
+  library(dadautils)
+})
 
 
 #' main processing step - tries to operate as a pipeline returning 0 (success) or
@@ -52,9 +54,9 @@ main <- function(CFG){
   charlier::info("OUTPUT PATH: %s", CFG$output_path)
   
   charlier::info("checking for input fastq files")
-  input_files <- dadautils::list_filepairs(CFG$input_path) %>%
-                   dadautils::verify_filepairs()
-  if (all( count_filepairs(input_files) == 0 )) {
+  input_files <- auntie::list_filepairs(CFG$input_path) |>
+                   auntie::verify_filepairs()
+  if (all( auntie::count_filepairs(input_files) == 0 )) {
     msg <- sprintf("check list_filepairs patterns, no files found in %s", CFG$input_path)
     charlier::error(msg)
     stop(msg)
@@ -78,14 +80,14 @@ main <- function(CFG){
     ok <- dadautils::run_cutadapt(cut_files, input_files, CFG, save_graphics = FALSE)
     if (all(ok == 0)) {
       
-      #input_files <- cut_files %>%
+      #input_files <- cut_files |>
       #  dadautils::verify_filepairs()
       
       charlier::info("checking for newly created input fastq files within cutadapt path")
-      input_files <- dadautils::list_filepairs(cutadapt_path) %>%
-                       dadautils::verify_filepairs(min_size=100)
+      input_files <- auntie::list_filepairs(cutadapt_path) |>
+                       auntie::verify_filepairs(min_size=100)
       sample.names <- dadautils::extract_sample_names(input_files,rule="before first _")
-      if (all(count_filepairs(input_files) == 0)) {
+      if (all(auntie::count_filepairs(input_files) == 0)) {
         charlier::error("no files made it past cutadapt, check cutadapt settings")
         stop("no files made it past cutadapt, check cutadapt settings")
       }      
@@ -103,7 +105,7 @@ main <- function(CFG){
                                n = CFG$quality$sample_n, 
                                params = CFG$dada2_filterAndTrim$cutoff_params,
                                plot_filename=file.path(CFG$output_path, "quality_profiles.pdf"), 
-                               overlap_filename=file.path(CFG$output_path, "overlap.csv")) %>%
+                               overlap_filename=file.path(CFG$output_path, "overlap.csv")) |>
                                dadautils::write_QPP(file.path(CFG$output_path, "qpp"))
   
   # if the user provided explicit truncLen values we use those (this should be very rare or non-existent), if not then we extract those from qpp
@@ -120,7 +122,7 @@ main <- function(CFG){
       CFG$dada2_filterAndTrim$truncLen <- trunLen_file 
     } else if (file.exists(CFG$dada2_filterAndTrim$truncLen)){
       charlier::info("reading truncLen from file: %s", CFG$dada2_filterAndTrim$truncLen)
-      truncLen <- readr::read_csv(CFG$dada2_filterAndTrim$truncLen)
+      truncLen <- readr::read_csv(CFG$dada2_filterAndTrim$truncLen, show_col_types = FALSE)
     } else {
       charlier::error("truncLen can be character, bit if so must be 'auto' or a filename")
       stop("truncLen not found:", CFG$dada2_filterAndTrim$truncLen)
@@ -131,8 +133,8 @@ main <- function(CFG){
   }
 
   charlier::info("estimate expected error thresholds (for maxEE)")
-  peet <- paired_quality_scores(input_files) %>%
-   paired_ee_per_read() %>%
+  peet <- paired_quality_scores(input_files) |>
+   paired_ee_per_read() |>
     paired_ee_threshold(sample_names  = sample.names, 
                         filename = file.path(CFG$output_path, "EE_thresholds.csv"))
   
@@ -159,7 +161,7 @@ main <- function(CFG){
                                           rm.phix      = CFG$dada2_filterAndTrim$rm.phix,
                                           compress     = CFG$dada2_filterAndTrim$compress,
                                           verbose      = CFG$dada2_filterAndTrim$verbose,
-                                          save_results = FALSE) %>%
+                                          save_results = FALSE) |>
                 readr::write_csv(file.path(CFG$output_path, "filter_and_trim.csv"))
     
     filtN_files <- dadautils::list_filepairs(filtN_path) 
@@ -175,7 +177,7 @@ main <- function(CFG){
           ix <- basename(input_files[[name]]) %in% basename(filtN_files[[name]])
           input_files[[name]][ix]
        }, simplify = FALSE)
-      filtN_r <- filtN_r %>%
+      filtN_r <- filtN_r |>
              dplyr::filter(reads.out > 0)
       sample.names <- dadautils::extract_sample_names(input_files, rule="before first _")
       
@@ -188,7 +190,7 @@ main <- function(CFG){
                                      output_path = CFG$output_path,
                                      multithread = CFG$multithread,
                                      save_output = FALSE, 
-                                     save_graphics = TRUE) %>%
+                                     save_graphics = TRUE) |>
              dadautils::write_errors(file.path(CFG$output_path, "learn_errors"))
     } # learn errors
   } # filter and trim
@@ -208,6 +210,8 @@ if (!interactive()){
 } else {
   CFGFILE <- "/mnt/storage/data/edna/dada/projects/3step/18S/asv_18S_preprocess.yaml"
 }
+
+message(sprintf("CFGFILE: %s", CFGFILE))
 
 CFG <- charlier::read_config(CFGFILE[1], 
                              autopopulate = TRUE,

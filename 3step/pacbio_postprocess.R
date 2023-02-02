@@ -1,12 +1,15 @@
-library(dplyr)
-library(readr)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(readr)
+  
+  library(ShortRead)  
+  library(Biostrings)
+  library(dada2)
+  
+  library(charlier)
+  library(dadautils)
+})
 
-library(ShortRead)  
-library(Biostrings)
-library(dada2)
-
-library(charlier)
-library(dadautils)
 
 
 #' main processing step - tries to operate as a pipeline returning 0 (success) or
@@ -15,6 +18,32 @@ library(dadautils)
 #' @param CFG list, configuration from a config file
 #' @return integer where 0 means success
 main <- function(CFG){
+  
+  # Make the track file - lots of assumed argumements here...
+  #
+  # First make a tibble for full suite of filepairs
+  # Then make tibble for the "survivors" of run_dada()
+  # Next left_join, and then compute  final_prr
+  # @return tibble
+  make_track <- function(){
+    
+    pre <- dplyr::tibble(
+      name        = dadautils::extract_sample_names(filter_trim$name, rule="before first _"),
+      input       = filter_trim$reads.in,
+      filtered    = filter_trim$reads.out)
+      
+    post <- dplyr::tibble(
+      name               = sample.names,
+      denoised_forward   = sapply(dada_r$forward, dadautils::count_uniques), 
+      denoised_reverse   = sapply(dada_r$reverse, dadautils::count_uniques), 
+      merged             = sapply(mergers, dadautils::count_uniques), 
+      nonchim            = rowSums(seqtab.nochim))
+      
+    dplyr::left_join(pre, post, by = 'name') |>
+      dplyr::mutate(final_prr = nonchim/input)
+    
+  }
+  
   
   RETURN <- 0
   
@@ -52,7 +81,7 @@ main <- function(CFG){
   charlier::info("OUTPUT PATH: %s", CFG$output_path)
   
   charlier::info("checking for input fastq files")
-  input_files <- auntie::list_filepairs(CFG$input_path, pattern_forward = "*.fastq.gz", verify=F) #%>%
+  input_files <- auntie::list_filepairs(CFG$input_path, pattern_forward = "*.fastq.gz", verify=F)
   
   # pacbio?
   norev <- (length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
@@ -85,17 +114,10 @@ main <- function(CFG){
                                 pool = CFG$dada2_dada$pool,
                                 BAND_SIZE=32)
   
-  # run merge pairs
-#  charlier::info("merge pairs")
-#  mergers <- dadautils::merge_pairs(input_files, dada_r, 
-#                                    verbose = TRUE,
-#                                    minOverlap = CFG$dada2_merge_pairs$minOverlap) %>%
-#    dadautils::write_mergers(file.path(CFG$output_path, "mergers"))
-  
   
   charlier::info("make sequence table")
   seqtab <- dada2::makeSequenceTable(dada_r$forward) 
-  tseqtab <- dplyr::as_tibble(t(seqtab)) %>%
+  tseqtab <- dplyr::as_tibble(t(seqtab)) |>
     readr::write_csv(file.path(CFG$output_path, "seqtab.csv"))
   
   charlier::info("remove Bimera Denovo")
@@ -109,21 +131,13 @@ main <- function(CFG){
   charlier::info("write fasta")
   fasta <- dadautils::asv_fasta(seqtab.nochim, file = file.path(CFG$output_path,"ASV_sequences.fasta"))
   
-  tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) %>%
-    dplyr::mutate(ASV = names(fasta)) %>%
-    dplyr::relocate(ASV, .before = 1) %>%
+  tseqtab.nochim <- dplyr::as_tibble(t(seqtab.nochim)) |>
+    dplyr::mutate(ASV = names(fasta)) |>
+    dplyr::relocate(ASV, .before = 1) |>
     readr::write_csv(file.path(CFG$output_path, "seqtab-nochim.csv"))
   
   charlier::info("write track")
-  track <- dplyr::tibble(
-    name               = sample.names,
-    input              = filter_trim$reads.in, 
-    filtered           = filter_trim$reads.out,
-    denoised_forward   = sapply(dada_r$forward, dadautils::count_uniques), 
-#    denoised_reverse   = sapply(dada_r$reverse, dadautils::count_uniques), 
-#    merged             = sapply(mergers, dadautils::count_uniques), 
-    nonchim            = rowSums(seqtab.nochim),
-    final_prr          = nonchim/input) %>%
+  track <- make_track() |>
     readr::write_csv(file.path(CFG$output_path, "track.csv"))
   
   
@@ -140,9 +154,9 @@ main <- function(CFG){
                                      filename          = file.path(CFG$output_path, "taxa.csv"))
   
   charlier::info("writing ASV_taxa")
-  ttaxa <- dplyr::as_tibble(taxa) %>%
-    dplyr::mutate(ASV = names(fasta)) %>%
-    dplyr::relocate(ASV, .before = 1) %>%
+  ttaxa <- dplyr::as_tibble(taxa) |>
+    dplyr::mutate(ASV = names(fasta)) |>
+    dplyr::relocate(ASV, .before = 1) |>
     readr::write_csv(file.path(CFG$output_path, "ASV_taxa.csv"))
   
   
@@ -152,15 +166,15 @@ main <- function(CFG){
       taxa <- taxa$tax
     }
     taxa <- dada2::addSpecies(taxa, refFasta = CFG$dada2_addSpecies$refFasta)
-    readr::write_csv(taxa %>% dplyr::as_tibble(), 
+    readr::write_csv(taxa |> dplyr::as_tibble(), 
                      file.path(CFG$output_path, "taxa-species.csv"))
   }
   
   if ("dada2_taxa_remove" %in% names(CFG)){
     charlier::info("remove unwanted values in taxonomy")
-    taxa <- taxa %>%
+    taxa <- taxa |>
       dadautils::taxa_remove(vars = CFG$dada2_taxa_remove)
-    readr::write_csv(taxa %>% dplyr::as_tibble(), 
+    readr::write_csv(taxa |> dplyr::as_tibble(), 
                      file.path(CFG$output_path, "taxa-cleaned.csv"))
   }
   
@@ -178,6 +192,8 @@ if (!interactive()){
 } else {
   CFGFILE <- ""
 }
+
+message(sprintf("CFGFILE: %s", CFGFILE))
 
 CFG <- charlier::read_config(CFGFILE[1], 
                              autopopulate = TRUE,
