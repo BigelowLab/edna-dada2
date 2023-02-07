@@ -54,7 +54,7 @@ main <- function(CFG){
   charlier::info("OUTPUT PATH: %s", CFG$output_path)
   
   charlier::info("checking for input fastq files")
-  input_files <- auntie::list_filepairs(CFG$input_path, pattern_forward = "*.fastq.gz", verify=F) #|>
+  input_files <- auntie::list_filepairs(CFG$input_path, pattern_forward = "*.fastq.gz", verify=F)
 
   if (all( auntie::count_filepairs(input_files) == 0 )) {
     msg <- sprintf("check list_filepairs patterns, no files found in %s", CFG$input_path)
