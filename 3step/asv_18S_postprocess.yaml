@@ -20,6 +20,7 @@ dada2_filterAndTrim:
   cutoff_params:
     score: 32
     model: Mean ~ poly(Cycle, 2)
+    quantile_min: 0.9
   minLen: 100
   maxN: 0.0
   maxEE:
