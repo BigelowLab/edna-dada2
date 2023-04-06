@@ -35,9 +35,11 @@ dada2_filterAndTrim:
   name: "filtN"
   truncLen: "auto"
   cutoff_params:
-    score: 32
+    score: 30
     model: "Mean ~ poly(Cycle, 2)"
-    quantile_min: 0.9
+    quantile_min: 0.8
+    min_fraction_above_threshold: 0.5
+    verbose: true
   minLen: 100
   maxN: 0.0
   maxEE:

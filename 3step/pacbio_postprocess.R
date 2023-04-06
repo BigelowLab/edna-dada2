@@ -35,7 +35,7 @@ main <- function(CFG){
     post <- dplyr::tibble(
       name               = sample.names,
       denoised_forward   = sapply(dada_r$forward, dadautils::count_uniques), 
-      denoised_reverse   = sapply(dada_r$reverse, dadautils::count_uniques), 
+      denoised_reverse   = if(norev) { NA } else { sapply(dada_r$reverse, dadautils::count_uniques) }, 
       merged             = sapply(mergers, dadautils::count_uniques), 
       nonchim            = rowSums(seqtab.nochim))
       
@@ -154,11 +154,12 @@ main <- function(CFG){
                                      filename          = file.path(CFG$output_path, "taxa.csv"))
   
   charlier::info("writing ASV_taxa")
-  ttaxa <- dplyr::as_tibble(taxa) |>
-    dplyr::mutate(ASV = names(fasta)) |>
-    dplyr::relocate(ASV, .before = 1) |>
-    readr::write_csv(file.path(CFG$output_path, "ASV_taxa.csv"))
-  
+#  ttaxa <- dplyr::as_tibble(taxa) |>
+#    dplyr::mutate(ASV = names(fasta)) |>
+#    dplyr::relocate(ASV, .before = 1) |>
+#    readr::write_csv(file.path(CFG$output_path, "ASV_taxa.csv"))
+  ttaxa <- dadautils::merge_taxonomy(fasta, taxa,
+                                     filename = file.path(CFG$output_path, "ASV_taxa.csv"))  
   
   if ("dada2_addSpecies" %in% names(CFG)){
     charlier::info("add species to taxonomy")
