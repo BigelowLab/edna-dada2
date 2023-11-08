@@ -137,9 +137,19 @@ main <- function(CFG){
     readr::write_csv(file.path(CFG$output_path, "seqtab-nochim.csv"))
   
   charlier::info("write track")
-  track <- make_track() |>
-    readr::write_csv(file.path(CFG$output_path, "track.csv"))
-  
+#  track <- make_track() |>
+#    readr::write_csv(file.path(CFG$output_path, "track.csv"))
+ 
+  track <- dplyr::tibble(
+    name               = sample.names,
+    input              = filter_trim$reads.in, 
+    filtered           = filter_trim$reads.out,
+    denoised_forward   = sapply(dada_r$forward, dadautils::count_uniques), 
+#    denoised_reverse   = sapply(dada_r$reverse, dadautils::count_uniques), 
+#    merged             = sapply(mergers, dadautils::count_uniques), 
+    nonchim            = rowSums(seqtab.nochim),
+    final_prr          = nonchim/input) %>%
+    readr::write_csv(file.path(CFG$output_path, "track.csv")) 
   
   charlier::info("assign taxonomy")
   taxa <- dadautils::assign_taxonomy(seqtab.nochim, 
