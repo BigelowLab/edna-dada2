@@ -22,11 +22,11 @@ verbose: "info"
 multithread: 16
 stage: "preprocess"
 dada2_removePrimers:
-  primer.fwd: "GACGGGTGAGTAACRCGTR"
-  primer.rev: "TTCGCTCRCCRCTACT"
+  primer.fwd: "CTGGTTGATYCTGCCAGT"
+  primer.rev: "TGATCCTTCTGCAGGTTCACCTAC"
   orient: yes
 quality:
-  amplicon_length: 2500
+  amplicon_length: 1800
   min_overlap: 20
   sample_n: 500000
 dada2_filterAndTrim:
@@ -37,7 +37,7 @@ dada2_filterAndTrim:
   cutoff_params:
     score: 32
     model: "Mean ~ poly(Cycle, 2)"
-  minLen: 2000
+  minLen: 1000
   maxLen: 4000
   maxN: 0.0
   maxEE:

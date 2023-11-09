@@ -41,7 +41,8 @@ dada2_removeBimeraDenovo_seqtab:
   method: consensus
   verbose: yes
 dada2_assignTaxonomy_nochim:
-  refFasta: $GLOBAL_REFERENCE_PATH/silva_nr99_v138.1_train_set.fa.gz
+  #refFasta: $GLOBAL_REFERENCE_PATH/silva_nr99_v138.1_train_set.fa.gz
+  refFasta: $GLOBAL_REFERENCE_PATH/pr2_version_4.14.0_SSU_dada2.fasta.gz
   minBoot: 50
   outputBootstraps: yes
   verbose: yes
