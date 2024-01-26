@@ -23,8 +23,9 @@ head(rawotus@otu_table)
 head(rawotus@tax_table)
 
 wh0 <-  genefilter_sample(rawotus, filterfun_sample(function(x) x > 2), A=2)
-ps <- prune_taxa(wh0, rawotus)
+ps_asv_pruned <- prune_taxa(wh0, rawotus)
 
+ps <- subset_samples(sample_sums(ps_asv_pruned) > 500) #change number to your preferred threshold
 #make a barplot of the top 200 most abundant ASVs, color coded by the highest taxonomic level (Supergroup)
 top200 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:200]
 ps.top200 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
