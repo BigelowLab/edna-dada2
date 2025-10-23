@@ -83,8 +83,9 @@ main <- function(CFG){
                    auntie::verify_filepairs()
 
   # pacbio?
-  norev <- (length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
- 
+  norev <- auntie::is_singleended(input_file) #(length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
+  if (norev) charlier::info("This is a single-ended sample")
+    
   sample.names <- dadautils::extract_sample_names(input_files, rule="before first _")
   
   
@@ -121,7 +122,11 @@ main <- function(CFG){
   
   
   charlier::info("make sequence table")
-  seqtab <- dada2::makeSequenceTable(mergers) 
+  seqtab <- if (norev){
+      dada2::makeSequenceTable(dada_r$forward)
+    } else{
+      dada2::makeSequenceTable(mergers)
+    }
   tseqtab <- dplyr::as_tibble(t(seqtab)) |>
     readr::write_csv(file.path(CFG$output_path, "seqtab.csv"))
   
