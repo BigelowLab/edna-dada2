@@ -83,7 +83,7 @@ main <- function(CFG){
                    auntie::verify_filepairs()
 
   # pacbio?
-  norev <- auntie::is_singleended(input_file) #(length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
+  norev <- auntie::is_singleended(input_files) #(length(input_files) == 1) || (lengths(input_files)[[2]] == 0)
   if (norev) charlier::info("This is a single-ended sample")
     
   sample.names <- dadautils::extract_sample_names(input_files, rule="before first _")
